@@ -1,0 +1,9 @@
+title,code,discount_type,discount_value,store_slug,expires_at,verified,is_featured
+50% Off Your Order,SAVE50,percentage,50,amazon,2027-06-04,true,true
+Free Shipping,FREESHIP,free_shipping,0,amazon,2027-06-04,true,false
+25% Off Electronics,TECH25,percentage,25,bestbuy,2027-06-04,true,true
+$20 Off $100+,SAVE20,fixed,20,walmart,2027-06-04,true,false
+Free Shipping No Min,FREE,free_shipping,0,walmart,2027-06-04,true,true
+15% Off Sitewide,SITE15,percentage,15,target,2027-06-04,true,false
+Extra 10% Off,EXTRA10,percentage,10,nike,2027-06-04,true,true
+30% Off Sale Items,SALE30,percentage,30,adidas,2027-06-04,false,false

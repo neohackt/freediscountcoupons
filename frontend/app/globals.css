@@ -1,0 +1,248 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+  --font-inter: 'Inter', sans-serif;
+
+  /* Primary Brand Colors */
+  --color-primary: #FF9800;
+  --color-primary-dark: #F57C00;
+  --color-primary-light: #FFB74D;
+
+  /* Secondary Colors */
+  --color-secondary: #4285F0;
+  --color-secondary-dark: #3367D6;
+  --color-secondary-light: #5E97F6;
+
+  /* Neutral Colors */
+  --color-dark: #333333;
+  --color-gray: #666666;
+  --color-light-gray: #E0E0E0;
+  --color-background: #F5F5F5;
+
+  /* Status Colors */
+  --color-success: #4CAF50;
+  --color-error: #F44336;
+  --color-warning: #FFC107;
+
+  /* Text Colors */
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #9E9E9E;
+  --color-text-inverse: #FFFFFF;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-inter);
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* Line Clamp Utilities */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Coupon Reveal Button ── */
+.coupon-reveal-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 260px;
+  height: 56px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition:
+    box-shadow 300ms ease-in-out,
+    transform 300ms ease-in-out;
+}
+
+.coupon-reveal-wrapper:hover {
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.10);
+  transform: translateY(-2px);
+}
+
+.coupon-code-area {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2px dashed #c7d2e0;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1a1a2e;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.coupon-reveal-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  background: #3B5CC9;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px 0 0 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 2;
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+
+.coupon-reveal-wrapper:hover .coupon-reveal-btn {
+  transform: translateX(-60px);
+}
+
+.coupon-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.coupon-reveal-wrapper:hover .coupon-shine {
+  animation: coupon-shine-sweep 500ms ease-in-out forwards;
+}
+
+.coupon-reveal-wrapper.revealed .coupon-reveal-btn {
+  transform: translateX(-60px);
+  animation: coupon-bounce 350ms ease-in-out 300ms 1;
+}
+
+.coupon-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.coupon-revealed-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+  height: 56px;
+  padding: 0 24px;
+  background: #22a844;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transition:
+    background 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.coupon-revealed-btn:hover {
+  background: #1d9239;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
+}
+
+.coupon-revealed-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10);
+}
+
+.coupon-revealed-btn .coupon-code-text {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+/* ── keyframes (must be outside @layer) ── */
+@keyframes coupon-shine-sweep {
+  0%   { left: -100%; }
+  100% { left: 150%; }
+}
+
+@keyframes coupon-bounce {
+  0%   { transform: translateX(-60px) scale(1); }
+  40%  { transform: translateX(-60px) scale(1.04); }
+  70%  { transform: translateX(-60px) scale(0.98); }
+  100% { transform: translateX(-60px) scale(1); }
+}

@@ -1,0 +1,8 @@
+name,slug,website_url,affiliate_url,is_popular
+Amazon,amazon,https://www.amazon.com,https://www.amazon.com,true
+Walmart,walmart,https://www.walmart.com,https://www.walmart.com,true
+Target,target,https://www.target.com,https://www.target.com,true
+Best Buy,bestbuy,https://www.bestbuy.com,https://www.bestbuy.com,true
+eBay,ebay,https://www.ebay.com,https://www.ebay.com,false
+Nike,nike,https://www.nike.com,https://www.nike.com,true
+Adidas,adidas,https://www.adidas.com,https://www.adidas.com,false

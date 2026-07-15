@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "import_jobs",
+  "info": {
+    "singularName": "import-job",
+    "pluralName": "import-jobs",
+    "displayName": "Import Job",
+    "description": "Bulk import jobs for stores and coupons"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "filename": {
+      "type": "string"
+    },
+    "format": {
+      "type": "enumeration",
+      "enum": ["csv", "xlsx", "json", "google_sheet"],
+      "default": "csv"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["stores", "coupons"],
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "processing", "completed", "failed"],
+      "default": "pending"
+    },
+    "total_rows": {
+      "type": "integer",
+      "default": 0
+    },
+    "imported_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "skipped_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "error_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "data": {
+      "type": "json"
+    },
+    "errors": {
+      "type": "json"
+    },
+    "schedule": {
+      "type": "string"
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "is_auto_sync": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

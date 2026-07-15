@@ -1,0 +1,55 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Strapi application",
+  "scripts": {
+    "build": "strapi build",
+    "console": "strapi console",
+    "deploy": "strapi deploy",
+    "dev": "strapi develop",
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "strapi": "strapi",
+    "upgrade": "npx @strapi/upgrade latest",
+    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+  },
+  "dependencies": {
+    "@strapi/admin": "^5.50.1",
+    "@strapi/plugin-cloud": "^5.50.1",
+    "@strapi/plugin-users-permissions": "^5.50.1",
+    "@strapi/provider-upload-local": "^5.50.1",
+    "@strapi/strapi": "^5.50.1",
+    "csv-parse": "^5.5.6",
+    "date-fns": "^2.30.0",
+    "marked": "^18.0.6",
+    "node-cron": "^3.0.3",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.0.0",
+    "sharp": "^0.35.2",
+    "styled-components": "^6.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "better-sqlite3": "^12.9.0",
+    "tsx": "^4.22.4",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.0.0 <=24.x.x",
+    "npm": ">=6.0.0"
+  },
+  "strapi": {
+    "uuid": "ecc0de4c-f6f4-472d-a6ad-db5e9f1b9e1e",
+    "installId": "dc701341a2d3e74bf7edcd388f5a4c9a8248ae3c6493622e53483a3f2f46ec98"
+  },
+  "overrides": {
+    "@codemirror/state": "6.6.0",
+    "@codemirror/view": "6.43.0"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "kind": "collectionType",
+  "collectionName": "coupons",
+  "info": {
+    "singularName": "coupon",
+    "pluralName": "coupons",
+    "displayName": "Coupon",
+    "description": "Coupon and deal information"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "code": {
+      "type": "string",
+      "required": true
+    },
+    "discount_type": {
+      "type": "enumeration",
+      "enum": ["percentage", "fixed", "free_shipping", "bogo", "unknown"],
+      "default": "unknown"
+    },
+    "discount_value": {
+      "type": "decimal"
+    },
+    "discount_text": {
+      "type": "string"
+    },
+    "affiliate_url": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "verified_at": {
+      "type": "datetime"
+    },
+    "expires_at": {
+      "type": "datetime"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_expired": {
+      "type": "boolean",
+      "default": false
+    },
+    "success_rate": {
+      "type": "integer",
+      "default": 0
+    },
+    "times_used": {
+      "type": "integer",
+      "default": 0
+    },
+    "store": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::store.store",
+      "inversedBy": "coupons"
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::category.category",
+      "inversedBy": "coupons"
+    },
+    "seo_title": {
+      "type": "string"
+    },
+    "seo_description": {
+      "type": "text"
+    },
+    "noindex": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
