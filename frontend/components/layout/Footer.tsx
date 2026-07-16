@@ -18,7 +18,7 @@ async function getFooterStores(): Promise<FooterStore[]> {
       { next: { revalidate: 86400 } }
     );
     const data = await response.json();
-    return (data.data || []).map((s: { name: string; slug: string }) => ({ name: s.name, slug: s.slug }));
+    return (data.data || []).slice(0, 10).map((s: { name: string; slug: string }) => ({ name: s.name, slug: s.slug }));
   } catch {
     return [];
   }
