@@ -9,10 +9,14 @@ export function HeroBanner() {
           {BRAND_CONFIG.tagline}
         </h1>
         <p className="text-lg md:text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-          Find the best coupons, promo codes, and deals from thousands of stores. 
+          Find the best coupons, promo codes, and deals from thousands of stores.
           Start saving today with verified discount codes.
         </p>
-        <SearchBar />
+        <div className="hero-search-wrapper">
+          <div className="search-group">
+            <SearchBar />
+          </div>
+        </div>
       </div>
     </div>
   );

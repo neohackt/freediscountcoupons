@@ -18,7 +18,7 @@ export function SearchBar({ className }: { className?: string }) {
   };
 
   return (
-    <form onSubmit={handleSearch} className={cn("flex w-full max-w-3xl mx-auto gap-2", className)}>
+    <form onSubmit={handleSearch} className={cn("flex gap-2", className)}>
       <Input
         type="text"
         placeholder="Search stores & coupons..."
