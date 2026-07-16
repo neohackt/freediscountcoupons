@@ -14,7 +14,7 @@ interface FooterCategory {
 async function getFooterStores(): Promise<FooterStore[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/stores?filters[is_popular][$eq]=true&fields=name,slug&pagination[pageSize]=5&sort=name:asc`,
+      `${API_CONFIG.strapiUrl}/api/stores?filters[is_popular][$eq]=true&fields=name,slug&pagination[pageSize]=10&sort=name:asc`,
       { next: { revalidate: 86400 } }
     );
     const data = await response.json();
