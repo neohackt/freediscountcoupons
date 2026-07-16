@@ -6,6 +6,7 @@ import Link from 'next/link';
 const navigation = [
   { name: 'Stores', href: '/stores' },
   { name: 'Categories', href: '/browse' },
+  { name: 'Blog', href: '/blog' },
 ];
 
 export function MobileMenu() {
