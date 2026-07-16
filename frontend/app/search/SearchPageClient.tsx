@@ -16,12 +16,9 @@ export default function SearchPageClient({ initialQuery }: SearchPageClientProps
     setQuery(initialQuery);
   }, [initialQuery, setQuery]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      window.history.pushState({}, '', `/search?q=${encodeURIComponent(query.trim())}`);
-      search(query.trim());
-    }
+  const handleSearch = (q: string) => {
+    window.history.pushState({}, '', `/search?q=${encodeURIComponent(q)}`);
+    search(q);
   };
 
   return (
@@ -32,9 +29,9 @@ export default function SearchPageClient({ initialQuery }: SearchPageClientProps
           <p className="text-gray-500">Find the best coupons, deals, and stores</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mb-8">
-          <SearchBar className="w-full" placeholder="Search stores, coupons, deals..." />
-        </form>
+        <div className="mb-8">
+          <SearchBar className="w-full" placeholder="Search stores, coupons, deals..." onSearch={handleSearch} defaultValue={initialQuery} />
+        </div>
 
         {initialQuery && (
           <p className="text-sm text-gray-500 mb-6">

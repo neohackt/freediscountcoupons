@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AutocompleteItem, AutocompleteResult, SearchResult } from '@/types';
 
-export function useAutocomplete() {
-  const [query, setQuery] = useState('');
+export function useAutocomplete(initialValue: string = '') {
+  const [query, setQuery] = useState(initialValue);
   const [results, setResults] = useState<AutocompleteResult>({ stores: [], categories: [], coupons: [] });
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);

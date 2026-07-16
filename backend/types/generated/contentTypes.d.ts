@@ -594,6 +594,7 @@ export interface ApiStoreStore extends Struct.CollectionTypeSchema {
   };
   attributes: {
     affiliate_url: Schema.Attribute.String;
+    aliases: Schema.Attribute.JSON;
     categories: Schema.Attribute.Relation<
       'manyToMany',
       'api::category.category'

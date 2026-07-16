@@ -6,9 +6,11 @@ import { useAutocomplete } from '@/hooks/useSearch';
 interface SearchBarProps {
   className?: string;
   placeholder?: string;
+  onSearch?: (query: string) => void;
+  defaultValue?: string;
 }
 
-export default function SearchBar({ className = '', placeholder = 'Search stores, coupons, deals...' }: SearchBarProps) {
+export default function SearchBar({ className = '', placeholder = 'Search stores, coupons, deals...', onSearch, defaultValue = '' }: SearchBarProps) {
   const {
     query,
     setQuery,
@@ -22,12 +24,16 @@ export default function SearchBar({ className = '', placeholder = 'Search stores
     inputRef,
     containerRef,
     handleKeyDown,
-  } = useAutocomplete();
+  } = useAutocomplete(defaultValue);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
+      if (onSearch) {
+        onSearch(query.trim());
+      } else {
+        window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
+      }
     }
   };
 
