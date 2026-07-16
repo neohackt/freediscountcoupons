@@ -1,9 +1,9 @@
 import { API_CONFIG } from './constants';
-import type { BlogPost, BlogCategory, BlogStrapiResponse, BlogListParams } from '@/types/blog';
+import type { BlogPost, BlogCategory, BlogStrapiResponse, BlogListParams, RelatedPost } from '@/types/blog';
 
 const STRAPI_URL = API_CONFIG.strapiUrl;
 
-async function fetchStrapi<T>(path: string, params?: Record<string, string>): Promise<T | null> {
+async function fetchStrapi<T>(path: string, params?: Record<string, string>, revalidate = 300): Promise<T | null> {
   try {
     const url = new URL(`${STRAPI_URL}${path}`);
     if (params) {
@@ -13,7 +13,7 @@ async function fetchStrapi<T>(path: string, params?: Record<string, string>): Pr
     }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (API_CONFIG.apiToken) headers['Authorization'] = `Bearer ${API_CONFIG.apiToken}`;
-    const res = await fetch(url.toString(), { headers, next: { revalidate: 300 } });
+    const res = await fetch(url.toString(), { headers, next: { revalidate } });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -94,4 +94,47 @@ export async function getTrendingPosts(limit = 5): Promise<BlogPost[]> {
   };
   const data = await fetchStrapi<BlogStrapiResponse<BlogPost[]>>('/api/blog-posts', params);
   return data?.data || [];
+}
+
+export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
+  const params: Record<string, string> = {
+    'filters[slug][$eq]': slug,
+    'populate[0]': 'featuredImage',
+    'populate[1]': 'category',
+    'populate[2]': 'author',
+    'populate[3]': 'author.avatar',
+    'populate[4]': 'og_image',
+    'populate[5]': 'relatedStores',
+    'populate[6]': 'relatedStores.logo',
+    'filters[publishedAt][$notNull]': 'true',
+  };
+  const data = await fetchStrapi<BlogStrapiResponse<BlogPost[]>>('/api/blog-posts', params, 3600);
+  return data?.data?.[0] || null;
+}
+
+export async function getRelatedPosts(postId: number, categoryId?: number | null, limit = 6): Promise<RelatedPost[]> {
+  const params: Record<string, string> = {
+    'filters[id][$ne]': String(postId),
+    'filters[publishedAt][$notNull]': 'true',
+    'populate[0]': 'featuredImage',
+    'populate[1]': 'category',
+    'sort': 'publishedAt:desc',
+    'pagination[pageSize]': String(limit * 2),
+  };
+  if (categoryId) {
+    params['filters[category][id][$eq]'] = String(categoryId);
+  }
+  const data = await fetchStrapi<BlogStrapiResponse<BlogPost[]>>('/api/blog-posts', params, 3600);
+  const posts = data?.data || [];
+  return posts.slice(0, limit).map((p) => ({
+    id: p.id,
+    documentId: p.documentId,
+    title: p.title,
+    slug: p.slug,
+    excerpt: p.excerpt,
+    featuredImage: p.featuredImage,
+    category: p.category,
+    publishedAt: p.publishedAt,
+    readingTime: p.readingTime,
+  }));
 }

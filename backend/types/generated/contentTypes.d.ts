@@ -531,8 +531,10 @@ export interface ApiBlogPostBlogPost extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     excerpt: Schema.Attribute.Text & Schema.Attribute.Required;
+    faqItems: Schema.Attribute.JSON;
     featured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     featuredImage: Schema.Attribute.Media<'images'>;
+    keyTakeaways: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -543,6 +545,7 @@ export interface ApiBlogPostBlogPost extends Struct.CollectionTypeSchema {
     og_image: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
     readingTime: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<5>;
+    relatedStores: Schema.Attribute.Relation<'manyToMany', 'api::store.store'>;
     seo_description: Schema.Attribute.Text;
     seo_title: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;

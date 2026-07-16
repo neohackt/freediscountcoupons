@@ -28,6 +28,9 @@
       "type": "richtext",
       "required": true
     },
+    "keyTakeaways": {
+      "type": "json"
+    },
     "featuredImage": {
       "type": "media",
       "multiple": false,
@@ -44,6 +47,14 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::author.author"
+    },
+    "relatedStores": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::store.store"
+    },
+    "faqItems": {
+      "type": "json"
     },
     "readingTime": {
       "type": "integer",
