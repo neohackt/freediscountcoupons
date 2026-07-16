@@ -44,6 +44,7 @@ const companyLinks = [
   { name: 'Terms of Use', href: '/terms' },
   { name: 'Affiliate Disclosure', href: '/affiliate-disclosure' },
   { name: 'Disclaimer', href: '/disclaimer' },
+  { name: 'DMCA Policy', href: '/dmca' },
 ];
 
 export async function Footer() {
