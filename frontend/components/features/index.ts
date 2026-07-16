@@ -4,7 +4,7 @@ export { StoreCard } from './StoreCard';
 export { StoreGrid } from './StoreGrid';
 export { CategoryCard } from './CategoryCard';
 export { CategoryGrid } from './CategoryGrid';
-export { SearchBar } from './SearchBar';
+export { default as SearchBar } from './SearchBar';
 export { HeroBanner } from './HeroBanner';
 export { Newsletter } from './Newsletter';
 export { RatingWidget } from './RatingWidget';

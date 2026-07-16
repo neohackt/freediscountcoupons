@@ -76,6 +76,9 @@
     "noindex": {
       "type": "boolean",
       "default": false
+    },
+    "aliases": {
+      "type": "json"
     }
   }
 }

@@ -98,6 +98,18 @@ The `faqs` JSON field in Store content type triggers a known Strapi 5.50.1 bug w
 - Backend endpoint: `GET /stores/similar/:slug` — finds stores sharing same categories, returns up to 10
 - "VIEW ALL" links to the store's first category page
 
+## Search Feature
+
+- **Backend**: `GET /api/search?q=keyword` — full search with scoring; `GET /api/search/autocomplete?q=keyword` — autocomplete
+- **Scoring**: Exact Store Match = 100, Alias Match = 95, Store Contains = 80, Category = 60, Coupon Title = 40, Description = 20
+- **Autocomplete**: Debounce 300ms, min 2 chars, max 8 suggestions, keyboard nav (↑↓ Enter Escape)
+- **Store aliases**: `aliases` field (JSON array) on Store — e.g., `["nike", "nike.com"]` for Nike
+- **Search page**: `/search?q=nike` — SSR, `<meta robots="noindex,follow">`
+- **SearchBar component**: `frontend/components/features/SearchBar.tsx` — default export, autocomplete dropdown
+- **useSearch hook**: `frontend/hooks/useSearch.ts` — `useAutocomplete()` for dropdown, `useSearch()` for full page
+- **SearchResults component**: `frontend/components/features/SearchResults.tsx` — grouped stores/coupons/categories
+- **Backend search service**: `backend/src/api/search/services/search.ts` — uses `strapi.db.query()` directly
+
 ## Graphify Plugin
 
 This project has a graphify knowledge graph at `graphify-out/`. After modifying code, run `graphify update .` to keep it current.

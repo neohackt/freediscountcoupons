@@ -1,5 +1,5 @@
 import { BRAND_CONFIG } from '@/lib/constants';
-import { SearchBar } from './SearchBar';
+import SearchBar from './SearchBar';
 
 export function HeroBanner() {
   return (

@@ -23,6 +23,7 @@ export interface Store {
   is_featured: boolean;
   categories?: Category[];
   coupons?: Coupon[];
+  aliases?: string[];
   seo_title?: string;
   seo_description?: string;
   og_image?: { url: string; alternativeText?: string } | null;
@@ -111,3 +112,77 @@ export interface SearchFilters {
   verified?: boolean;
   featured?: boolean;
 }
+
+export interface SearchResultStore {
+  id: number;
+  documentId: string;
+  name: string;
+  slug: string;
+  logo?: { url: string } | null;
+  score: number;
+  matchType: string;
+}
+
+export interface SearchResultCategory {
+  id: number;
+  documentId: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  score: number;
+  matchType: string;
+}
+
+export interface SearchResultCoupon {
+  id: number;
+  documentId: string;
+  title: string;
+  code: string;
+  discount_type: DiscountType;
+  store?: { name: string; slug: string; logo?: { url: string } | null } | null;
+  score: number;
+  matchType: string;
+}
+
+export interface SearchResult {
+  stores: SearchResultStore[];
+  categories: SearchResultCategory[];
+  coupons: SearchResultCoupon[];
+}
+
+export interface SearchResponse {
+  data: SearchResult;
+  meta: { total: number };
+}
+
+export interface AutocompleteStore {
+  id: number;
+  name: string;
+  slug: string;
+  logo?: { url: string } | null;
+  type: 'store';
+}
+
+export interface AutocompleteCategory {
+  id: number;
+  name: string;
+  slug: string;
+  icon?: string;
+  type: 'category';
+}
+
+export interface AutocompleteCoupon {
+  id: number;
+  title: string;
+  code: string;
+  store?: { name: string; slug: string } | null;
+  type: 'coupon';
+}
+
+export interface AutocompleteResult {
+  stores: AutocompleteStore[];
+  categories: AutocompleteCategory[];
+  coupons: AutocompleteCoupon[];
+}
+
+export type AutocompleteItem = AutocompleteStore | AutocompleteCategory | AutocompleteCoupon;
