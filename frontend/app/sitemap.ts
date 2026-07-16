@@ -11,6 +11,11 @@ interface StrapiCategory {
   updatedAt: string;
 }
 
+interface StrapiBlogPost {
+  slug: string;
+  updatedAt: string;
+}
+
 async function getStores(): Promise<StrapiStore[]> {
   try {
     const response = await fetch(
@@ -43,8 +48,24 @@ async function getCategories(): Promise<StrapiCategory[]> {
   }
 }
 
+async function getBlogPosts(): Promise<StrapiBlogPost[]> {
+  try {
+    const response = await fetch(
+      `${API_CONFIG.strapiUrl}/api/blog-posts?fields=slug,updatedAt&pagination[pageSize]=100&filters[publishedAt][$notNull]=true`,
+      { next: { revalidate: 3600 } }
+    );
+    const data = await response.json();
+    return (data.data || []).map((p: { slug: string; updatedAt: string }) => ({
+      slug: p.slug,
+      updatedAt: p.updatedAt,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [stores, categories] = await Promise.all([getStores(), getCategories()]);
+  const [stores, categories, blogPosts] = await Promise.all([getStores(), getCategories(), getBlogPosts()]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -65,6 +86,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
   ];
 
   const storePages: MetadataRoute.Sitemap = stores.map((store) => ({
@@ -81,5 +108,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...storePages, ...categoryPages];
+  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...storePages, ...categoryPages, ...blogPages];
 }

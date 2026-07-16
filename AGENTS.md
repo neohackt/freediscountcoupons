@@ -44,9 +44,12 @@ All API calls include `Content-Type: application/json`. If `STRAPI_API_TOKEN` is
 
 | Type | Location | Key Fields |
 |------|----------|------------|
-| Store | `backend/src/api/store/` | name, slug (uid), logo (media), is_popular, is_featured, description, description_html, faqs (json), categories (relation), seo_title, seo_description, og_image, noindex |
+| Store | `backend/src/api/store/` | name, slug (uid), logo (media), is_popular, is_featured, description, description_html, faqs (json), categories (relation), seo_title, seo_description, og_image, noindex, aliases (json) |
 | Coupon | `backend/src/api/coupon/` | title, code, discount_type, discount_value, store (relation), is_expired, expires_at, verified, is_featured, success_rate, times_used, categories (relation) |
 | Category | `backend/src/api/category/` | name, slug (uid), icon |
+| BlogPost | `backend/src/api/blog-post/` | title, slug (uid), excerpt, content (richtext), featuredImage (media), category (relation), author (relation), readingTime, featured, viewCount, seo_title, seo_description, og_image, noindex |
+| BlogCategory | `backend/src/api/blog-category/` | name, slug (uid), description |
+| Author | `backend/src/api/author/` | name, slug (uid), avatar (media), bio |
 | ImportJob | `backend/src/api/import-job/` | filename, format, type, status, total_rows, imported_count, errors |
 
 ## Environment Files
@@ -109,6 +112,20 @@ The `faqs` JSON field in Store content type triggers a known Strapi 5.50.1 bug w
 - **useSearch hook**: `frontend/hooks/useSearch.ts` — `useAutocomplete()` for dropdown, `useSearch()` for full page
 - **SearchResults component**: `frontend/components/features/SearchResults.tsx` — grouped stores/coupons/categories
 - **Backend search service**: `backend/src/api/search/services/search.ts` — uses `strapi.db.query()` directly
+
+## Blog Feature
+
+- **Content types**: BlogPost (title, slug, excerpt, content, featuredImage, category, author, readingTime, featured, viewCount), BlogCategory (name, slug), Author (name, slug, avatar, bio)
+- **Blog page**: `/blog` — dynamic (SSR), paginated, category filter, search
+- **Blog components**: `frontend/components/blog/` — BlogHero, FeaturedPost, CategoryFilter, BlogCard, BlogGrid, BlogSidebar, Pagination
+- **Blog types**: `frontend/types/blog.ts`
+- **Blog client**: `frontend/lib/blog.ts` — getBlogPosts, getFeaturedPost, getBlogCategories, getTrendingPosts
+- **BlogPageClient**: `frontend/app/blog/BlogPageClient.tsx` — client component handling search/category state
+- **Loading/Error**: `frontend/app/blog/loading.tsx`, `frontend/app/blog/error.tsx`
+- **Sidebar**: Trending posts (by viewCount), Popular categories (with live counts), Newsletter signup (placeholder), Shopping events
+- **ISR**: 300s revalidation on blog listing; on-demand revalidation via `/api/revalidate`
+- **Sitemap**: Blog posts included in `app/sitemap.ts`
+- **SEO**: `generateMetadata()` per page, noindex on search results
 
 ## Graphify Plugin
 
