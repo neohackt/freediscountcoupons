@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AutocompleteItem, AutocompleteResult, SearchResult } from '@/types';
+import { API_CONFIG } from '@/lib/constants';
+
+const STRAPI_URL = API_CONFIG.strapiUrl;
 
 export function useAutocomplete(initialValue: string = '') {
   const [query, setQuery] = useState(initialValue);
@@ -33,7 +36,7 @@ export function useAutocomplete(initialValue: string = '') {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`/api/search/autocomplete?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+      const res = await fetch(`${STRAPI_URL}/api/search/autocomplete?q=${encodeURIComponent(q)}`, { signal: controller.signal });
       if (!res.ok) throw new Error('Autocomplete failed');
       const data = await res.json();
       setResults(data.data);
@@ -133,7 +136,7 @@ export function useSearch(initialQuery: string = '') {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
+      const res = await fetch(`${STRAPI_URL}/api/search?q=${encodeURIComponent(q.trim())}`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
       setResults(data.data);
