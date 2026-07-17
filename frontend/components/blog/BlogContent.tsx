@@ -22,9 +22,10 @@ function renderInline(children: ContentBlock[] | undefined): React.ReactNode {
   if (!children) return null;
   return children.map((child, i) => {
     if (child.type === 'text') {
-      let text: React.ReactNode = child.text || '';
+      let text: React.ReactNode = (child.text || '').replace(/^>\s*/gm, '');
       if (child.text?.includes('**')) {
-        const parts = child.text.split(/(\*\*[^*]+\*\*)/g);
+        const cleaned = child.text.replace(/^>\s*/gm, '');
+        const parts = cleaned.split(/(\*\*[^*]+\*\*)/g);
         text = parts.map((part, j) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return <strong key={j}>{part.slice(2, -2)}</strong>;
