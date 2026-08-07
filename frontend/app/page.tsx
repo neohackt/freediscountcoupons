@@ -5,7 +5,7 @@ import { StoreGrid } from '@/components/features/StoreGrid';
 import { CategoryGrid } from '@/components/features/CategoryGrid';
 import { CouponGrid } from '@/components/features/CouponGrid';
 import { Newsletter } from '@/components/features/Newsletter';
-import { SITE_URL } from '@/lib/constants';
+import { SITE_URL, STRAPI_URL } from '@/lib/strapi';
 import type { Store, Category, Coupon } from '@/types';
 
 export const revalidate = 3600;
@@ -25,11 +25,10 @@ export const metadata: Metadata = {
 
 async function getHomepageData() {
   try {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const [storesRes, categoriesRes, couponsRes] = await Promise.all([
-      fetch(`${strapiUrl}/api/stores?populate%5B%5D=coupons&populate%5B%5D=logo&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } }),
-      fetch(`${strapiUrl}/api/categories`, { next: { revalidate: 3600 } }),
-      fetch(`${strapiUrl}/api/coupons?populate%5B%5D=store.logo&populate%5B%5D=store&populate%5B%5D=categories&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } })
+      fetch(`${STRAPI_URL}/api/stores?populate%5B%5D=coupons&populate%5B%5D=logo&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } }),
+      fetch(`${STRAPI_URL}/api/categories`, { next: { revalidate: 3600 } }),
+      fetch(`${STRAPI_URL}/api/coupons?populate%5B%5D=store.logo&populate%5B%5D=store&populate%5B%5D=categories&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } })
     ]);
     
     const storesData = await storesRes.json();

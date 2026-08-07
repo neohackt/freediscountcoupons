@@ -3,10 +3,7 @@ import Link from 'next/link';
 import { RatingWidget } from './RatingWidget';
 import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
-
-function getStrapiUrl(): string {
-  return process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-}
+import { getStoreLogo } from '@/lib/strapi';
 
 interface StoreSidebarProps {
   store: Store;
@@ -29,24 +26,8 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
   return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&size=${size}&url=http://${domain}`;
 }
 
-function getStoreLogoUrl(store: Store): string {
-  if (store.logo?.url) {
-    if (store.logo.url.startsWith('http')) {
-      return store.logo.url;
-    }
-    return `${getStrapiUrl()}${store.logo.url}`;
-  }
-  
-  const googleFavicon = getGoogleFaviconUrl(store.website_url);
-  if (googleFavicon) {
-    return googleFavicon;
-  }
-  
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(store.name)}&size=200&background=2563eb&color=fff`;
-}
-
 export function StoreSidebar({ store, stats, similarStores = [] }: StoreSidebarProps) {
-  const logoUrl = getStoreLogoUrl(store);
+  const logoUrl = getStoreLogo(store);
   
   const websiteUrl = store.affiliate_url || store.website_url || '#';
 

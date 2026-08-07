@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Store } from '@/types';
+import { getStoreLogo } from '@/lib/strapi';
 
 interface StoreCardProps {
   store: Store;
@@ -18,24 +19,8 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
   return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&size=${size}&url=http://${domain}`;
 }
 
-function getStoreLogoUrl(store: Store): string {
-  if (store.logo?.url) {
-    if (store.logo.url.startsWith('http')) {
-      return store.logo.url;
-    }
-    return `http://localhost:1337${store.logo.url}`;
-  }
-
-  const googleFavicon = getGoogleFaviconUrl(store.website_url);
-  if (googleFavicon) {
-    return googleFavicon;
-  }
-
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(store.name)}&size=120&background=2563eb&color=fff&font-size=0.4`;
-}
-
 export function StoreCard({ store }: StoreCardProps) {
-  const storeLogoUrl = getStoreLogoUrl(store);
+  const storeLogoUrl = getStoreLogo(store);
   const couponCount = store.coupons?.length ?? 0;
 
   return (

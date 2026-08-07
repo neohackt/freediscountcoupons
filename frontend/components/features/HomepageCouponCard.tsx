@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
+import { getStoreLogo } from '@/lib/strapi';
 
 interface HomepageCouponCardProps {
   coupon: Coupon;
@@ -21,28 +22,7 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
   const timeAgo = getTimeAgo(coupon.createdAt);
   const hasCode = coupon.code && coupon.code.length > 0;
 
-  // Get store logo URL
-  const getStoreLogoUrl = () => {
-    if (store?.logo?.url) {
-      if (store.logo.url.startsWith('http')) {
-        return store.logo.url;
-      }
-      return `http://localhost:1337${store.logo.url}`;
-    }
-    
-    if (store?.website_url) {
-      const domain = store.website_url
-        .replace(/^https?:\/\//, '')
-        .replace(/^www\./, '')
-        .split('/')[0]
-        .toLowerCase();
-      return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&size=80&url=http://${domain}`;
-    }
-    
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(store?.name || 'S')}&size=80&background=2563eb&color=fff&font-size=0.4`;
-  };
-
-  const storeLogoUrl = getStoreLogoUrl();
+  const storeLogoUrl = getStoreLogo(store);
 
   const handleReveal = () => {
     setIsRevealed(true);

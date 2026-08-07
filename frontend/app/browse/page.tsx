@@ -4,15 +4,14 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { CategoryGrid } from '@/components/features/CategoryGrid';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
 import { ItemListJsonLd } from '@/components/seo/ItemListJsonLd';
-import { SITE_URL } from '@/lib/constants';
+import { SITE_URL, STRAPI_URL } from '@/lib/strapi';
 import type { Category } from '@/types';
 
 export const revalidate = 3600;
 
 async function getCategories() {
   try {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-    const response = await fetch(`${strapiUrl}/api/categories?pagination[pageSize]=50`, {
+    const response = await fetch(`${STRAPI_URL}/api/categories?pagination[pageSize]=50`, {
       next: { revalidate: 3600 }
     });
     const data = await response.json();
@@ -40,7 +39,7 @@ export default async function BrowsePage() {
   const categories = await getCategories();
 
   return (
-    <>
+    <div>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Categories', path: '/browse' },
@@ -55,7 +54,7 @@ export default async function BrowsePage() {
             description: c.description,
           }))}
         />
-      )}
+      )
 
       <Container className="py-8">
         <Breadcrumbs items={[{ label: 'Categories' }]} className="mb-6" />
@@ -76,6 +75,6 @@ export default async function BrowsePage() {
           </div>
         )}
       </Container>
-    </>
+    </div>
   );
 }

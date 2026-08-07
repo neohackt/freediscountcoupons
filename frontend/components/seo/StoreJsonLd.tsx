@@ -1,5 +1,6 @@
 import { JsonLd } from './JsonLd';
-import { BRAND_CONFIG, SITE_URL } from '@/lib/constants';
+import { SITE_URL } from '@/lib/strapi';
+import { buildJsonLdLogo } from '@/lib/strapi';
 import type { Store, Coupon } from '@/types';
 
 interface StoreJsonLdProps {
@@ -17,7 +18,7 @@ export function StoreJsonLd({ store, coupons }: StoreJsonLdProps) {
     url: `${SITE_URL}/store/${store.slug}`,
     ...(store.description ? { description: store.description } : {}),
     ...(store.logo?.url
-      ? { logo: store.logo.url.startsWith('http') ? store.logo.url : `http://localhost:1337${store.logo.url}` }
+      ? { logo: buildJsonLdLogo(store) }
       : {}),
   };
 
@@ -43,7 +44,7 @@ export function StoreJsonLd({ store, coupons }: StoreJsonLdProps) {
             validThrough: coupon.expires_at || undefined,
             seller: {
               '@type': 'Organization',
-              name: BRAND_CONFIG.name,
+              name: 'FreeDiscountCoupons',
             },
           },
         })),

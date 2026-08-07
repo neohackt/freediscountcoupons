@@ -5,16 +5,15 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { CouponGrid } from '@/components/features/CouponGrid';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
 import { ItemListJsonLd } from '@/components/seo/ItemListJsonLd';
-import { SITE_URL, BRAND_CONFIG } from '@/lib/constants';
+import { SITE_URL, STRAPI_URL, BRAND_CONFIG } from '@/lib/strapi';
 import type { Coupon } from '@/types';
 
 export const revalidate = 10800;
 
 export async function generateStaticParams() {
   try {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const response = await fetch(
-      `${strapiUrl}/api/categories?fields=slug&pagination[pageSize]=100`
+      `${STRAPI_URL}/api/categories?fields=slug&pagination[pageSize]=100`
     );
     const data = await response.json();
     return (data.data || []).map((cat: { slug: string }) => ({
@@ -27,14 +26,13 @@ export async function generateStaticParams() {
 
 async function getCategoryBySlug(slug: string) {
   try {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const params = new URLSearchParams();
     params.set('filters[slug][$eq]', slug);
     params.append('populate[stores]', 'true');
     params.append('populate[coupons]', 'true');
 
     const response = await fetch(
-      `${strapiUrl}/api/categories?${params.toString()}`,
+      `${STRAPI_URL}/api/categories?${params.toString()}`,
       { next: { revalidate: 10800 } }
     );
     const data = await response.json();
@@ -47,7 +45,6 @@ async function getCategoryBySlug(slug: string) {
 
 async function getCouponsByCategory(categorySlug: string) {
   try {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const params = new URLSearchParams();
     params.set('filters[categories][slug][$eq]', categorySlug);
     params.set('filters[is_expired][$ne]', 'true');
@@ -56,7 +53,7 @@ async function getCouponsByCategory(categorySlug: string) {
     params.set('pagination[pageSize]', '100');
 
     const response = await fetch(
-      `${strapiUrl}/api/coupons?${params.toString()}`,
+      `${STRAPI_URL}/api/coupons?${params.toString()}`,
       { next: { revalidate: 10800 } }
     );
     const data = await response.json();
@@ -125,7 +122,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const coupons = await getCouponsByCategory(slug);
 
   return (
-    <>
+    <div>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Categories', path: '/browse' },
@@ -141,7 +138,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             description: c.description,
           }))}
         />
-      )}
+      )
 
       <Container className="py-8">
         <Breadcrumbs
@@ -176,6 +173,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           )}
         </section>
       </Container>
-    </>
+    </div>
   );
 }
