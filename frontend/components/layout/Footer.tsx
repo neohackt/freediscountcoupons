@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BRAND_CONFIG, API_CONFIG } from '@/lib/constants';
+import { BRAND_CONFIG, STRAPI_URL } from '@/lib/strapi';
 
 interface FooterStore {
   name: string;
@@ -14,7 +14,7 @@ interface FooterCategory {
 async function getFooterStores(): Promise<FooterStore[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/stores?filters[is_popular][$eq]=true&fields=name,slug&pagination[pageSize]=10&sort=name:asc`,
+      `${STRAPI_URL}/api/stores?filters[is_popular][$eq]=true&fields=name,slug&pagination[pageSize]=10&sort=name:asc`,
       { next: { revalidate: 86400 } }
     );
     const data = await response.json();
@@ -27,7 +27,7 @@ async function getFooterStores(): Promise<FooterStore[]> {
 async function getFooterCategories(): Promise<FooterCategory[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/categories?fields=name,slug&pagination[pageSize]=10&sort=name:asc`,
+      `${STRAPI_URL}/api/categories?fields=name,slug&pagination[pageSize]=10&sort=name:asc`,
       { next: { revalidate: 86400 } }
     );
     const data = await response.json();
@@ -109,7 +109,7 @@ export async function Footer() {
                   <li><Link href="/browse/electronics" className="text-gray-400 hover:text-white transition-colors text-sm">Electronics</Link></li>
                   <li><Link href="/browse/clothing" className="text-gray-400 hover:text-white transition-colors text-sm">Clothing</Link></li>
                   <li><Link href="/browse/beauty" className="text-gray-400 hover:text-white transition-colors text-sm">Beauty</Link></li>
-                  <li><Link href="/browse/home-and-garden" className="text-gray-400 hover:text-white transition-colors text-sm">Home &amp; Garden</Link></li>
+                  <li><Link href="/browse/home-and-garden" className="text-gray-400 hover:text-white transition-colors text-sm">Home & Garden</Link></li>
                 </>
               )}
               <li>
@@ -139,7 +139,7 @@ export async function Footer() {
             Affiliate Disclosure: This website may earn commissions from qualifying purchases through affiliate links, at no extra cost to you.
           </p>
           <p className="text-gray-400 text-sm">
-            &copy; {new Date().getFullYear()} {BRAND_CONFIG.name}. All rights reserved. | Designed &amp; Developed by Whiz Adsbay LLP
+            &copy; {new Date().getFullYear()} {BRAND_CONFIG.name}. All rights reserved. | Designed & Developed by Whiz Adsbay LLP
           </p>
         </div>
       </div>

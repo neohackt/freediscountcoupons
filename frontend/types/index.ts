@@ -94,7 +94,7 @@ export interface StrapiResponse<T> {
 }
 
 export interface StrapiRequestParams {
-  populate?: string | string[];
+  populate?: string | string[] | Record<string, unknown>;
   filters?: Record<string, unknown>;
   sort?: string | string[];
   pagination?: {

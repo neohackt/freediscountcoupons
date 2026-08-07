@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { API_CONFIG, SITE_URL } from '@/lib/constants';
+import { SITE_URL, STRAPI_URL } from '@/lib/strapi';
 
 interface StrapiStore {
   slug: string;
@@ -19,7 +19,7 @@ interface StrapiBlogPost {
 async function getStores(): Promise<StrapiStore[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/stores?fields=0&populate=0&pagination[pageSize]=100`,
+      `${STRAPI_URL}/api/stores?fields=0&populate=0&pagination[pageSize]=100`,
       { next: { revalidate: 3600 } }
     );
     const data = await response.json();
@@ -35,7 +35,7 @@ async function getStores(): Promise<StrapiStore[]> {
 async function getCategories(): Promise<StrapiCategory[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/categories?fields=0&populate=0&pagination[pageSize]=100`,
+      `${STRAPI_URL}/api/categories?fields=0&populate=0&pagination[pageSize]=100`,
       { next: { revalidate: 3600 } }
     );
     const data = await response.json();
@@ -51,7 +51,7 @@ async function getCategories(): Promise<StrapiCategory[]> {
 async function getBlogPosts(): Promise<StrapiBlogPost[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.strapiUrl}/api/blog-posts?fields=slug,updatedAt&pagination[pageSize]=100&filters[publishedAt][$notNull]=true`,
+      `${STRAPI_URL}/api/blog-posts?fields=slug,updatedAt&pagination[pageSize]=100&filters[publishedAt][$notNull]=true`,
       { next: { revalidate: 3600 } }
     );
     const data = await response.json();

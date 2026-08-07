@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AutocompleteItem, AutocompleteResult, SearchResult } from '@/types';
-import { API_CONFIG } from '@/lib/constants';
-
-const STRAPI_URL = API_CONFIG.strapiUrl;
+import { STRAPI_URL } from '@/lib/strapi';
 
 export function useAutocomplete(initialValue: string = '') {
   const [query, setQuery] = useState(initialValue);

@@ -1,7 +1,5 @@
-import { API_CONFIG } from './constants';
+import { STRAPI_URL } from '@/lib/strapi';
 import type { BlogPost, BlogCategory, BlogStrapiResponse, BlogListParams, RelatedPost } from '@/types/blog';
-
-const STRAPI_URL = API_CONFIG.strapiUrl;
 
 async function fetchStrapi<T>(path: string, params?: Record<string, string>, revalidate = 300): Promise<T | null> {
   try {
@@ -12,7 +10,6 @@ async function fetchStrapi<T>(path: string, params?: Record<string, string>, rev
       });
     }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (API_CONFIG.apiToken) headers['Authorization'] = `Bearer ${API_CONFIG.apiToken}`;
     const res = await fetch(url.toString(), { headers, next: { revalidate } });
     if (!res.ok) return null;
     return res.json();
