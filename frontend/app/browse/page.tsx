@@ -38,7 +38,7 @@ export default async function BrowsePage() {
   const categories = await getCategories();
 
   return (
-    <div>
+    <>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Categories', path: '/browse' },
@@ -53,7 +53,7 @@ export default async function BrowsePage() {
             description: c.description,
           }))}
         />
-      )
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs items={[{ label: 'Categories' }]} className="mb-6" />
@@ -74,6 +74,6 @@ export default async function BrowsePage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

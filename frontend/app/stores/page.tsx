@@ -44,7 +44,7 @@ export default async function StoresPage() {
   const stores = await getStores();
 
   return (
-    <div>
+    <>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Stores', path: '/stores' },
@@ -59,7 +59,7 @@ export default async function StoresPage() {
             description: s.description,
           }))}
         />
-      )
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs items={[{ label: 'Stores' }]} className="mb-6" />
@@ -80,6 +80,6 @@ export default async function StoresPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

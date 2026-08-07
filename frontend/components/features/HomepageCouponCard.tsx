@@ -22,7 +22,7 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
   const timeAgo = getTimeAgo(coupon.createdAt);
   const hasCode = coupon.code && coupon.code.length > 0;
 
-  const storeLogoUrl = getStoreLogo(store);
+  const storeLogoUrl = store ? getStoreLogo(store) : '';
 
   const handleReveal = () => {
     setIsRevealed(true);

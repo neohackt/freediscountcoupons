@@ -121,7 +121,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const coupons = await getCouponsByCategory(slug);
 
   return (
-    <div>
+    <>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Categories', path: '/browse' },
@@ -137,7 +137,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             description: c.description,
           }))}
         />
-      )
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs
@@ -161,7 +161,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
               {category.name} Deals ({coupons.length})
             </h2>
           </div>
-          
+
           {coupons.length > 0 ? (
             <CouponGrid coupons={coupons as Coupon[]} />
           ) : (
@@ -172,6 +172,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           )}
         </section>
       </div>
-    </div>
+    </>
   );
 }
