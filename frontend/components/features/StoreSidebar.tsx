@@ -4,6 +4,10 @@ import { RatingWidget } from './RatingWidget';
 import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
 
+function getStrapiUrl(): string {
+  return process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+}
+
 interface StoreSidebarProps {
   store: Store;
   stats: {
@@ -30,7 +34,7 @@ function getStoreLogoUrl(store: Store): string {
     if (store.logo.url.startsWith('http')) {
       return store.logo.url;
     }
-    return `http://localhost:1337${store.logo.url}`;
+    return `${getStrapiUrl()}${store.logo.url}`;
   }
   
   const googleFavicon = getGoogleFaviconUrl(store.website_url);
