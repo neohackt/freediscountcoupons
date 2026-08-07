@@ -12,8 +12,9 @@ export const revalidate = 10800;
 
 export async function generateStaticParams() {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const response = await fetch(
-      `http://localhost:1337/api/categories?fields=slug&pagination[pageSize]=100`
+      `${strapiUrl}/api/categories?fields=slug&pagination[pageSize]=100`
     );
     const data = await response.json();
     return (data.data || []).map((cat: { slug: string }) => ({
@@ -26,13 +27,14 @@ export async function generateStaticParams() {
 
 async function getCategoryBySlug(slug: string) {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const params = new URLSearchParams();
     params.set('filters[slug][$eq]', slug);
     params.append('populate[stores]', 'true');
     params.append('populate[coupons]', 'true');
 
     const response = await fetch(
-      `http://localhost:1337/api/categories?${params.toString()}`,
+      `${strapiUrl}/api/categories?${params.toString()}`,
       { next: { revalidate: 10800 } }
     );
     const data = await response.json();
@@ -45,6 +47,7 @@ async function getCategoryBySlug(slug: string) {
 
 async function getCouponsByCategory(categorySlug: string) {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const params = new URLSearchParams();
     params.set('filters[categories][slug][$eq]', categorySlug);
     params.set('filters[is_expired][$ne]', 'true');
@@ -53,7 +56,7 @@ async function getCouponsByCategory(categorySlug: string) {
     params.set('pagination[pageSize]', '100');
 
     const response = await fetch(
-      `http://localhost:1337/api/coupons?${params.toString()}`,
+      `${strapiUrl}/api/coupons?${params.toString()}`,
       { next: { revalidate: 10800 } }
     );
     const data = await response.json();

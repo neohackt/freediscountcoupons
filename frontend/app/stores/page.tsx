@@ -11,13 +11,14 @@ export const revalidate = 3600;
 
 async function getStores() {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const params = new URLSearchParams();
     params.set('populate[0]', 'logo');
     params.set('populate[1]', 'coupons');
     params.set('pagination[pageSize]', '100');
     params.set('sort', 'name:asc');
 
-    const response = await fetch(`http://localhost:1337/api/stores?${params.toString()}`, {
+    const response = await fetch(`${strapiUrl}/api/stores?${params.toString()}`, {
       next: { revalidate: 3600 }
     });
     const data = await response.json();

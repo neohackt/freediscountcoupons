@@ -15,8 +15,9 @@ export const revalidate = 60;
 
 export async function generateStaticParams() {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const response = await fetch(
-      `http://localhost:1337/api/stores?fields=slug&pagination[pageSize]=100`
+      `${strapiUrl}/api/stores?fields=slug&pagination[pageSize]=100`
     );
     const data = await response.json();
     return (data.data || []).map((store: { slug: string }) => ({
@@ -29,8 +30,9 @@ export async function generateStaticParams() {
 
 async function getSimilarStores(slug: string): Promise<Store[]> {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const response = await fetch(
-      `http://localhost:1337/api/stores/similar/${slug}`,
+      `${strapiUrl}/api/stores/similar/${slug}`,
       { next: { revalidate: 60 } }
     );
     if (!response.ok) return [];
@@ -43,7 +45,8 @@ async function getSimilarStores(slug: string): Promise<Store[]> {
 
 async function getStoreBySlug(slug: string) {
   try {
-    const url = `http://localhost:1337/api/stores/slug/${slug}`;
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+    const url = `${strapiUrl}/api/stores/slug/${slug}`;
     
     const response = await fetch(url, { next: { revalidate: 60 } });
     

@@ -1,7 +1,5 @@
 import { marked } from 'marked';
-
-const REVALIDATE_URL = process.env.REVALIDATE_URL || 'http://localhost:3000';
-const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET || 'your-secret-key';
+import { revalidationService } from '../../../../../utils/revalidation';
 
 function convertDescriptionToHtml(data: any) {
   if (data && data.description && typeof data.description === 'string') {
@@ -12,22 +10,6 @@ function convertDescriptionToHtml(data: any) {
 function convertEntityDescriptionToHtml(entry: any) {
   if (entry && entry.description && typeof entry.description === 'string') {
     entry.description_html = marked.parse(entry.description) as string;
-  }
-}
-
-async function revalidateStore(slug: string) {
-  try {
-    await fetch(`${REVALIDATE_URL}/api/revalidate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-revalidate-secret': REVALIDATE_SECRET,
-      },
-      body: JSON.stringify({ paths: [`/store/${slug}`] }),
-    });
-    console.log(`[Store Lifecycle] Revalidated /store/${slug}`);
-  } catch (err) {
-    console.error('[Store Lifecycle] Revalidation failed:', err);
   }
 }
 
@@ -55,12 +37,22 @@ export default {
 
   async afterCreate(event: any) {
     const slug = event.params.data?.slug;
-    if (slug) await revalidateStore(slug);
+    if (slug) {
+      revalidationService.addRoutes('store', [{ slug }]);
+      revalidationService.addRoutes('homepage', [{}]);
+      revalidationService.addRoutes('sitemap', [{}]);
+      await revalidationService.flush();
+    }
   },
 
   async afterUpdate(event: any) {
     const slug = event.result?.slug || event.params.data?.slug;
-    if (slug) await revalidateStore(slug);
+    if (slug) {
+      revalidationService.addRoutes('store', [{ slug }]);
+      revalidationService.addRoutes('homepage', [{}]);
+      revalidationService.addRoutes('sitemap', [{}]);
+      await revalidationService.flush();
+    }
   },
 
   async afterPublish(event: any) {
@@ -68,10 +60,25 @@ export default {
     const entries = event.params?.entries || [event.entry];
     if (Array.isArray(entries)) {
       for (const entry of entries) {
-        if (entry.slug) await revalidateStore(entry.slug);
+        if (entry.slug) {
+          revalidationService.addRoutes('store', [{ slug: entry.slug }]);
+        }
       }
     } else if (entries?.slug) {
-      await revalidateStore(entries.slug);
+      revalidationService.addRoutes('store', [{ slug: entries.slug }]);
+    }
+    revalidationService.addRoutes('homepage', [{}]);
+    revalidationService.addRoutes('sitemap', [{}]);
+    await revalidationService.flush();
+  },
+
+  async afterDelete(event: any) {
+    const slug = event.result?.slug || event.params.where?.slug;
+    if (slug) {
+      revalidationService.addRoutes('store', [{ slug }]);
+      revalidationService.addRoutes('homepage', [{}]);
+      revalidationService.addRoutes('sitemap', [{}]);
+      await revalidationService.flush();
     }
   },
 };

@@ -11,7 +11,8 @@ export const revalidate = 3600;
 
 async function getCategories() {
   try {
-    const response = await fetch('http://localhost:1337/api/categories?pagination[pageSize]=50', {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+    const response = await fetch(`${strapiUrl}/api/categories?pagination[pageSize]=50`, {
       next: { revalidate: 3600 }
     });
     const data = await response.json();

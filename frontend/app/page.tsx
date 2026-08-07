@@ -25,10 +25,11 @@ export const metadata: Metadata = {
 
 async function getHomepageData() {
   try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
     const [storesRes, categoriesRes, couponsRes] = await Promise.all([
-      fetch('http://localhost:1337/api/stores?populate%5B%5D=coupons&populate%5B%5D=logo&pagination%5BpageSize%5D=100', { next: { revalidate: 3600 } }),
-      fetch('http://localhost:1337/api/categories', { next: { revalidate: 3600 } }),
-      fetch('http://localhost:1337/api/coupons?populate%5B%5D=store.logo&populate%5B%5D=store&populate%5B%5D=categories&pagination%5BpageSize%5D=100', { next: { revalidate: 3600 } })
+      fetch(`${strapiUrl}/api/stores?populate%5B%5D=coupons&populate%5B%5D=logo&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } }),
+      fetch(`${strapiUrl}/api/categories`, { next: { revalidate: 3600 } }),
+      fetch(`${strapiUrl}/api/coupons?populate%5B%5D=store.logo&populate%5B%5D=store&populate%5B%5D=categories&pagination%5BpageSize%5D=100`, { next: { revalidate: 3600 } })
     ]);
     
     const storesData = await storesRes.json();

@@ -8,6 +8,7 @@ import type { ParsedRow, ImportError, ImportType } from './types';
 import { normalizeStoreData, normalizeCouponData, normalizeCategoryData } from './validator';
 import { downloadLogo, getLogoFilename } from './logoHandler';
 import { parseFile } from './parsers';
+import { revalidationService, type ContentType } from '../utils/revalidation';
 
 interface ImportContext {
   strapi: StrapiType;
@@ -24,6 +25,9 @@ export async function processImport(context: ImportContext): Promise<{
   errors: ImportError[];
 }> {
   const { strapi, jobId, format, type, content, sourceUrl } = context;
+
+  // Initialize revalidation service with Strapi instance
+  revalidationService.setStrapi(strapi);
 
   await strapi.db.query('api::import-job.import-job').update({
     where: { id: jobId },
@@ -56,6 +60,11 @@ export async function processImport(context: ImportContext): Promise<{
   let skipped = 0;
   const allErrors: ImportError[] = [];
 
+  // Track imported items for revalidation
+  const importedStores: { slug: string }[] = [];
+  const importedCoupons: { storeSlug: string; slug?: string }[] = [];
+  const importedCategories: { slug: string }[] = [];
+
   for (let i = 0; i < parsedRows.length; i++) {
     const row = parsedRows[i];
 
@@ -66,6 +75,7 @@ export async function processImport(context: ImportContext): Promise<{
           skipped++;
         } else {
           imported++;
+          if (result.slug) importedStores.push({ slug: result.slug });
         }
       } else if (type === 'categories') {
         const result = await importCategoryRow(strapi, row.data);
@@ -73,6 +83,7 @@ export async function processImport(context: ImportContext): Promise<{
           skipped++;
         } else {
           imported++;
+          if (result.slug) importedCategories.push({ slug: result.slug });
         }
       } else {
         const result = await importCouponRow(strapi, row.data);
@@ -80,6 +91,7 @@ export async function processImport(context: ImportContext): Promise<{
           skipped++;
         } else {
           imported++;
+          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
         }
       }
     } catch (error) {
@@ -116,13 +128,31 @@ export async function processImport(context: ImportContext): Promise<{
     },
   });
 
+  // Trigger revalidation for all imported items
+  if (importedStores.length > 0) {
+    revalidationService.addRoutes('store', importedStores);
+  }
+  if (importedCoupons.length > 0) {
+    revalidationService.addRoutes('coupon', importedCoupons);
+  }
+  if (importedCategories.length > 0) {
+    revalidationService.addRoutes('category', importedCategories);
+  }
+
+  // Also revalidate homepage and sitemap for any import
+  revalidationService.addRoutes('homepage', [{}]);
+  revalidationService.addRoutes('sitemap', [{}]);
+  
+  // Flush all pending revalidations in a single batched request
+  await revalidationService.flush();
+
   return { imported, skipped, errors: allErrors };
 }
 
 async function importStoreRow(
   strapi: StrapiType,
   data: Record<string, unknown>
-): Promise<{ id: number; skipped: boolean }> {
+): Promise<{ id: number; skipped: boolean; slug?: string }> {
   const normalized = normalizeStoreData(data);
 
   const existingStore = await strapi.db.query('api::store.store').findOne({
@@ -130,7 +160,7 @@ async function importStoreRow(
   });
 
   if (existingStore) {
-    return { id: existingStore.id, skipped: true };
+    return { id: existingStore.id, skipped: true, slug: existingStore.slug };
   }
 
   let logoId = null;
@@ -173,9 +203,11 @@ async function importStoreRow(
     }
   }
 
+  const slug = normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
+
   const createData: Record<string, unknown> = {
     name: normalized.name,
-    slug: normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, ''),
+    slug,
     description: normalized.description || '',
     website_url: normalized.website_url || '',
     affiliate_url: normalized.affiliate_url || '',
@@ -205,16 +237,17 @@ async function importStoreRow(
     console.error('Failed to publish store:', e);
   }
 
-  return { id: created.id, skipped: false };
+  return { id: created.id, skipped: false, slug };
 }
 
 async function importCouponRow(
   strapi: StrapiType,
   data: Record<string, unknown>
-): Promise<{ id: number; skipped: boolean }> {
+): Promise<{ id: number; skipped: boolean; storeSlug?: string; slug?: string }> {
   const normalized = normalizeCouponData(data);
 
   let storeId = null;
+  let storeSlug = normalized.store_slug;
 
   if (normalized.store_slug) {
     const store = await strapi.db.query('api::store.store').findOne({
@@ -235,7 +268,7 @@ async function importCouponRow(
   });
 
   if (existingCoupon) {
-    return { id: existingCoupon.id, skipped: true };
+    return { id: existingCoupon.id, skipped: true, storeSlug, slug: existingCoupon.slug };
   }
 
   const createData: Record<string, unknown> = {
@@ -274,13 +307,13 @@ async function importCouponRow(
     console.error('Failed to publish coupon:', e);
   }
 
-  return { id: created.id, skipped: false };
+  return { id: created.id, skipped: false, storeSlug, slug: created.slug };
 }
 
 async function importCategoryRow(
   strapi: StrapiType,
   data: Record<string, unknown>
-): Promise<{ id: number; skipped: boolean }> {
+): Promise<{ id: number; skipped: boolean; slug?: string }> {
   const normalized = normalizeCategoryData(data);
 
   const existingCategory = await strapi.db.query('api::category.category').findOne({
@@ -288,12 +321,14 @@ async function importCategoryRow(
   });
 
   if (existingCategory) {
-    return { id: existingCategory.id, skipped: true };
+    return { id: existingCategory.id, skipped: true, slug: existingCategory.slug };
   }
+
+  const slug = normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
 
   const createData: Record<string, unknown> = {
     name: normalized.name,
-    slug: normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, ''),
+    slug,
     icon: normalized.icon || '',
     description: normalized.description || '',
   };
@@ -316,7 +351,7 @@ async function importCategoryRow(
     console.error('Failed to publish category:', e);
   }
 
-  return { id: created.id, skipped: false };
+  return { id: created.id, skipped: false, slug };
 }
 
 export async function deleteExpiredCoupons(strapi: StrapiType): Promise<number> {
