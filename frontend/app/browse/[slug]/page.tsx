@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { CouponGrid } from '@/components/features/CouponGrid';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
@@ -107,7 +106,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   
   if (!category) {
     return (
-      <Container className="py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-20">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Category Not Found</h1>
           <p className="text-gray-500 mb-4">The category you're looking for doesn't exist.</p>
@@ -115,7 +114,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             Browse all categories →
           </Link>
         </div>
-      </Container>
+      </div>
     );
   }
 
@@ -140,7 +139,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         />
       )
 
-      <Container className="py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs
           items={[
             { label: 'Categories', href: '/browse' },
@@ -172,7 +171,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             </div>
           )}
         </section>
-      </Container>
+      </div>
     </div>
   );
 }

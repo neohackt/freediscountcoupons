@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreGrid } from '@/components/features/StoreGrid';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
@@ -62,7 +61,7 @@ export default async function StoresPage() {
         />
       )
 
-      <Container className="py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs items={[{ label: 'Stores' }]} className="mb-6" />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
@@ -80,7 +79,7 @@ export default async function StoresPage() {
             <p className="text-gray-400 text-sm mt-2">Add stores from your Strapi admin panel.</p>
           </div>
         )}
-      </Container>
+      </div>
     </div>
   );
 }
