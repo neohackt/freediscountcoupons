@@ -224,6 +224,43 @@ export function normalizeStoreData(data: Record<string, unknown>): StoreData {
   return result;
 }
 
+/**
+ * Normalize date string to ISO format
+ * Supports: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, YYYY/MM/DD, and ISO timestamps
+ * Returns null for empty/invalid dates
+ */
+function normalizeDate(value: string): string | null {
+  if (!value || value.trim() === '') return null;
+
+  const trimmed = value.trim();
+
+  // Already an ISO timestamp (contains T or Z)
+  if (trimmed.includes('T') || trimmed.includes('Z')) {
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  // DD-MM-YYYY or DD/MM/YYYY
+  const euMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (euMatch) {
+    const [, day, month, year] = euMatch;
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  // Fallback: try native Date parsing
+  const d = new Date(trimmed);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 export function normalizeCouponData(data: Record<string, unknown>): CouponData {
   const result: CouponData = {};
 
@@ -251,7 +288,10 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
   if (data.discount_text) result.discount_text = String(data.discount_text).trim();
   if (data.store_slug) result.store_slug = String(data.store_slug).trim();
   if (data.affiliate_url) result.affiliate_url = String(data.affiliate_url).trim();
-  if (data.expires_at) result.expires_at = String(data.expires_at).trim();
+  if (data.expires_at !== undefined) {
+    const normalizedDate = normalizeDate(String(data.expires_at));
+    result.expires_at = normalizedDate || undefined;
+  }
 
   if (data.verified !== undefined) {
     const val = String(data.verified).toLowerCase();

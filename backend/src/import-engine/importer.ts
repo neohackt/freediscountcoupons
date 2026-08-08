@@ -96,13 +96,31 @@ export async function processImport(context: ImportContext): Promise<{
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      // Provide more specific error messages based on the error content
+      let field = 'import';
+      let message = errorMsg;
+
+      if (errorMsg.includes('expires_at') || errorMsg.includes('date') || errorMsg.includes('timestamp')) {
+        field = 'expires_at';
+        message = `Invalid date format. Expected DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, or ISO timestamp. Received: "${row.data.expires_at}"`;
+      } else if (errorMsg.includes('Store not found')) {
+        field = 'store_slug';
+        message = errorMsg;
+      } else if (errorMsg.includes('currency')) {
+        field = 'currency';
+        message = errorMsg;
+      } else if (errorMsg.includes('discount_value')) {
+        field = 'discount_value';
+        message = errorMsg;
+      }
+
       allErrors.push({
         row: row.row,
-        field: 'import',
-        message: errorMsg,
+        field,
+        message,
         value: row.data,
       });
-      skipped++;
+      // Don't increment skipped for errors - errors are tracked separately
     }
 
     if ((i + 1) % 10 === 0 || i === parsedRows.length - 1) {
@@ -284,13 +302,17 @@ async function importCouponRow(
     affiliate_url: normalized.affiliate_url || '',
     verified: normalized.verified || false,
     verified_at: normalized.verified ? new Date().toISOString() : null,
-    expires_at: normalized.expires_at || null,
     is_featured: normalized.is_featured || false,
     is_expired: normalized.is_expired || false,
     success_rate: 0,
     times_used: 0,
     store: storeId,
   };
+
+  // Only include expires_at if it has a value
+  if (normalized.expires_at) {
+    createData.expires_at = normalized.expires_at;
+  }
 
   const created = await strapi.entityService.create('api::coupon.coupon', {
     data: createData,
