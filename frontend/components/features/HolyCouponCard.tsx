@@ -5,6 +5,8 @@ import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 
+const DESCRIPTION_MAX_LENGTH = 140;
+
 interface HolyCouponCardProps {
   coupon: Coupon;
   variant?: 'default' | 'highlight';
@@ -14,10 +16,12 @@ interface HolyCouponCardProps {
 export function HolyCouponCard({ coupon, variant = 'default', isExpired = false }: HolyCouponCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const store = coupon.store;
   const websiteUrl = store?.affiliate_url || store?.website_url || '#';
   const couponLink = coupon.affiliate_url || websiteUrl;
+  const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 
   const discountText = formatDiscount(coupon, coupon.store);
   const badgeType = getBadgeType(coupon);
@@ -119,6 +123,32 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
             )}>
               {coupon.title}
             </h3>
+
+            {/* Description */}
+            {coupon.description && (
+              <div className="mb-2">
+                <p className={cn(
+                  "text-sm text-gray-600",
+                  !isExpanded && hasLongDescription && "line-clamp-2"
+                )}>
+                  {coupon.description}
+                </p>
+                {hasLongDescription && (
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsExpanded((prev) => !prev);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                  >
+                    {isExpanded ? "View Less" : "View More"}
+                  </button>
+                )}
+              </div>
+            )}
             
             <div className="flex items-center gap-4 text-sm">
               {coupon.verified && !isExpired && (

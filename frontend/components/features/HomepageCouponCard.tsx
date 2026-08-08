@@ -7,6 +7,8 @@ import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
 
+const DESCRIPTION_MAX_LENGTH = 140;
+
 interface HomepageCouponCardProps {
   coupon: Coupon;
 }
@@ -14,9 +16,11 @@ interface HomepageCouponCardProps {
 export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const store = coupon.store;
   const couponLink = coupon.affiliate_url || store?.affiliate_url || store?.website_url || '#';
+  const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 
   const discountText = formatDiscount(coupon, coupon.store);
   const timeAgo = getTimeAgo(coupon.createdAt);
@@ -72,6 +76,31 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
             <h3 className="text-lg font-semibold text-gray-900 truncate mb-2">
               {coupon.title}
             </h3>
+            {/* Description */}
+            {coupon.description && (
+              <div className="mb-2 hidden sm:block">
+                <p className={cn(
+                  "text-sm text-gray-500",
+                  !isExpanded && hasLongDescription && "line-clamp-2"
+                )}>
+                  {coupon.description}
+                </p>
+                {hasLongDescription && (
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsExpanded((prev) => !prev);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                  >
+                    {isExpanded ? "View Less" : "View More"}
+                  </button>
+                )}
+              </div>
+            )}
             {timeAgo && (
               <p className="text-sm text-gray-400">Worked {timeAgo}</p>
             )}
