@@ -30,25 +30,12 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
       filename = fname;
       format = getFormatFromFilename(fname);
 
-      // Strapi v5 file upload structure - try multiple approaches
       const fs = require('fs');
+      const crypto = require('crypto');
       let contentBuffer: Buffer | null = null;
 
-      // Method 1: filepath (Strapi v5 default)
-      const filepath = fileObj?.filepath as string;
-      if (filepath && fs.existsSync(filepath)) {
-        contentBuffer = fs.readFileSync(filepath);
-        console.log('Read file from filepath:', filepath);
-      }
-
-      // Method 2: toBuffer function
-      if (!contentBuffer && typeof fileObj?.toBuffer === 'function') {
-        contentBuffer = fileObj.toBuffer() as Buffer;
-        console.log('Read file from toBuffer');
-      }
-
-      // Method 3: data property
-      if (!contentBuffer && fileObj?.data) {
+      // Method 1: data property (most reliable for fresh uploads)
+      if (fileObj?.data) {
         const fileData = fileObj.data;
         if (Buffer.isBuffer(fileData)) {
           contentBuffer = fileData;
@@ -60,7 +47,7 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
         console.log('Read file from data, type:', typeof fileData);
       }
 
-      // Method 4: stream (pipe readable stream)
+      // Method 2: stream (pipe readable stream)
       if (!contentBuffer && fileObj?.stream) {
         const chunks: Buffer[] = [];
         const stream = fileObj.stream as NodeJS.ReadableStream;
@@ -69,6 +56,27 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
         }
         contentBuffer = Buffer.concat(chunks);
         console.log('Read file from stream');
+      }
+
+      // Method 3: toBuffer function
+      if (!contentBuffer && typeof fileObj?.toBuffer === 'function') {
+        contentBuffer = fileObj.toBuffer() as Buffer;
+        console.log('Read file from toBuffer');
+      }
+
+      // Method 4: filepath (Strapi v5 default - may be cached)
+      const filepath = fileObj?.filepath as string;
+      if (!contentBuffer && filepath && fs.existsSync(filepath)) {
+        contentBuffer = fs.readFileSync(filepath);
+        console.log('Read file from filepath:', filepath);
+      }
+
+      // Log content hash for debugging
+      if (contentBuffer) {
+        const hash = crypto.createHash('md5').update(contentBuffer).digest('hex');
+        const preview = contentBuffer.toString().slice(0, 200);
+        console.log('File content hash:', hash);
+        console.log('File content preview:', preview);
       }
 
       content = contentBuffer || Buffer.from('');
