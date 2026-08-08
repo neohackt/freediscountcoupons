@@ -1,18 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 
 interface HolyCouponCardProps {
   coupon: Coupon;
-  storeLogo?: string;
   variant?: 'default' | 'highlight';
   isExpired?: boolean;
 }
 
-export function HolyCouponCard({ coupon, storeLogo, variant = 'default', isExpired = false }: HolyCouponCardProps) {
+export function HolyCouponCard({ coupon, variant = 'default', isExpired = false }: HolyCouponCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -20,17 +19,9 @@ export function HolyCouponCard({ coupon, storeLogo, variant = 'default', isExpir
   const websiteUrl = store?.affiliate_url || store?.website_url || '#';
   const couponLink = coupon.affiliate_url || websiteUrl;
 
-  const discountText = getDiscountText(coupon);
+  const discountText = formatDiscount(coupon, coupon.store);
   const badgeType = getBadgeType(coupon);
   const timeAgo = getTimeAgo(coupon.createdAt);
-
-  const handleReveal = () => {
-    setIsRevealed(true);
-    if (couponLink) {
-      window.open(couponLink, '_blank');
-    }
-    copyToClipboard(coupon.code);
-  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -171,19 +162,6 @@ export function HolyCouponCard({ coupon, storeLogo, variant = 'default', isExpir
       </div>
     </div>
   );
-}
-
-function getDiscountText(coupon: Coupon): string {
-  if (coupon.discount_type === 'percentage') {
-    return `${coupon.discount_value || 0}%`;
-  }
-  if (coupon.discount_type === 'fixed') {
-    return `$${coupon.discount_value || 0}`;
-  }
-  if (coupon.discount_text) {
-    return coupon.discount_text;
-  }
-  return 'DEAL';
 }
 
 function getBadgeType(coupon: Coupon): string {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface RatingWidgetProps {
@@ -19,21 +19,38 @@ export function RatingWidget({ storeId, storeName, initialRating = 0, initialVot
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
     const storedRatings = localStorage.getItem('storeRatings');
+    let newHasRated = false;
+    let newUserRating = 0;
+
     if (storedRatings) {
       const ratings = JSON.parse(storedRatings);
       if (ratings[storeId]) {
-        setHasRated(true);
-        setUserRating(ratings[storeId]);
+        newHasRated = true;
+        newUserRating = ratings[storeId];
       }
     }
+
     const storedStats = localStorage.getItem(`ratingStats_${storeId}`);
+    let newRating = initialRating;
+    let newVotes = initialVotes;
+
     if (storedStats) {
       const stats = JSON.parse(storedStats);
-      setRating(stats.rating || initialRating);
-      setVotes(stats.votes || initialVotes);
+      newRating = stats.rating || initialRating;
+      newVotes = stats.votes || initialVotes;
     }
+
+    setHasRated(newHasRated);
+    setUserRating(newUserRating);
+    setRating(newRating);
+    setVotes(newVotes);
   }, [storeId, initialRating, initialVotes]);
 
   const handleRate = async (selectedRating: number) => {

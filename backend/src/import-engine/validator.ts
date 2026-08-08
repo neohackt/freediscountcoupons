@@ -1,5 +1,5 @@
 import type { ParsedRow, ValidationResult, StoreData, CouponData, CategoryData, ImportError } from './types';
-import { DISCOUNT_TYPES } from './types';
+import { DISCOUNT_TYPES, CURRENCIES, type CurrencyCode } from './types';
 
 const STORE_REQUIRED_FIELDS = ['name'];
 const COUPON_REQUIRED_FIELDS = ['title', 'code'];
@@ -60,6 +60,14 @@ export function validateCouponRow(row: ParsedRow): ValidationResult {
 
   if (data.discount_value && isNaN(Number(data.discount_value))) {
     errors.push('discount_value must be a number');
+  }
+
+  // Validate currency code format
+  if (data.currency) {
+    const currencyUpper = String(data.currency).trim().toUpperCase();
+    if (!CURRENCIES.includes(currencyUpper as CurrencyCode)) {
+      errors.push(`Invalid currency: ${data.currency}. Must be one of: ${CURRENCIES.join(', ')}`);
+    }
   }
 
   if (data.store_slug && typeof data.store_slug !== 'string') {
@@ -198,6 +206,8 @@ export function normalizeStoreData(data: Record<string, unknown>): StoreData {
   if (data.website_url) result.website_url = String(data.website_url).trim();
   if (data.affiliate_url) result.affiliate_url = String(data.affiliate_url).trim();
   if (data.logo_url) result.logo_url = String(data.logo_url).trim();
+  if (data.country) result.country = String(data.country).trim().toUpperCase();
+  if (data.currency) result.currency = String(data.currency).trim().toUpperCase();
 
   if (data.is_popular !== undefined) {
     const val = String(data.is_popular).toLowerCase();
@@ -232,6 +242,10 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
 
   if (data.discount_value !== undefined) {
     result.discount_value = parseFloat(String(data.discount_value));
+  }
+
+  if (data.currency) {
+    result.currency = String(data.currency).trim().toUpperCase();
   }
 
   if (data.discount_text) result.discount_text = String(data.discount_text).trim();

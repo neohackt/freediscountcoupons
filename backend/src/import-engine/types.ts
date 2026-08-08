@@ -27,6 +27,8 @@ export interface StoreData {
   website_url?: string;
   affiliate_url?: string;
   logo_url?: string;
+  country?: string;
+  currency?: string;
   is_popular?: boolean;
   is_featured?: boolean;
   category_names?: string;
@@ -38,6 +40,7 @@ export interface CouponData {
   description?: string;
   discount_type?: 'percentage' | 'fixed' | 'free_shipping' | 'bogo' | 'unknown';
   discount_value?: number;
+  currency?: string;
   discount_text?: string;
   store_slug?: string;
   affiliate_url?: string;
@@ -86,4 +89,27 @@ export interface LogoResult {
 }
 
 export const DISCOUNT_TYPES = ['percentage', 'fixed', 'free_shipping', 'bogo', 'unknown'] as const;
+export const CURRENCIES = [
+  'INR', 'USD', 'EUR', 'GBP', 'AED', 'AUD', 'CAD', 'SGD', 'JPY', 'CNY'
+] as const;
+
+export type CurrencyCode = typeof CURRENCIES[number];
+
+// ISO 3166-1 alpha-2 country → ISO 4217 currency mapping
+export const COUNTRY_CURRENCY_MAP: Record<string, CurrencyCode> = {
+  IN: 'INR',
+  US: 'USD',
+  GB: 'GBP',
+  AE: 'AED',
+  AU: 'AUD',
+  CA: 'CAD',
+  SG: 'SGD',
+  JP: 'JPY',
+  CN: 'CNY',
+  DE: 'EUR',
+  FR: 'EUR',
+  IT: 'EUR',
+  ES: 'EUR',
+};
+
 export const GOOGLE_FAVICON_BASE = 'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&url=';

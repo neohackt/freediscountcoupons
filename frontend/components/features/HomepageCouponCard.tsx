@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
@@ -18,23 +18,11 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
   const store = coupon.store;
   const couponLink = coupon.affiliate_url || store?.affiliate_url || store?.website_url || '#';
 
-  const discountText = getDiscountText(coupon);
+  const discountText = formatDiscount(coupon, coupon.store);
   const timeAgo = getTimeAgo(coupon.createdAt);
   const hasCode = coupon.code && coupon.code.length > 0;
 
   const storeLogoUrl = store ? getStoreLogo(store) : '';
-
-  const handleReveal = () => {
-    setIsRevealed(true);
-    if (couponLink) {
-      window.open(couponLink, '_blank');
-    }
-    if (hasCode) {
-      navigator.clipboard.writeText(coupon.code);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
-  };
 
   return (
     <div
@@ -123,19 +111,6 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
       </div>
     </div>
   );
-}
-
-function getDiscountText(coupon: Coupon): string {
-  if (coupon.discount_type === 'percentage') {
-    return `${coupon.discount_value || 0}% OFF`;
-  }
-  if (coupon.discount_type === 'fixed') {
-    return `$${coupon.discount_value || 0} OFF`;
-  }
-  if (coupon.discount_text) {
-    return coupon.discount_text;
-  }
-  return 'DEAL';
 }
 
 function getTimeAgo(dateString?: string): string | null {

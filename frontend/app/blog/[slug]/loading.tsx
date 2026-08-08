@@ -10,7 +10,7 @@ export default function BlogPostLoading() {
           <div className="aspect-[16/9] bg-gray-200 rounded-2xl mb-10 animate-pulse" />
           <div className="space-y-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: `${85 + Math.random() * 15}%` }} />
+              <div key={i} className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: `${85 + (i % 3) * 5}%` }} />
             ))}
           </div>
         </div>

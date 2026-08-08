@@ -12,6 +12,8 @@ export interface Store {
   faqs?: { question: string; answer: string }[];
   website_url?: string;
   affiliate_url?: string;
+  country?: string;
+  currency?: string;
   social_links?: {
     facebook?: string;
     twitter?: string;
@@ -62,6 +64,7 @@ export interface Coupon {
   code: string;
   discount_type: DiscountType;
   discount_value?: number;
+  currency?: string | null;
   discount_text?: string;
   affiliate_url?: string;
   verified: boolean;

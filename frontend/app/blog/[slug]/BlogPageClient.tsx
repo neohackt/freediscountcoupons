@@ -12,7 +12,7 @@ import RelatedPosts from '@/components/blog/RelatedPosts';
 import RelatedStores from '@/components/blog/RelatedStores';
 import CouponWidget from '@/components/blog/CouponWidget';
 import SocialShare from '@/components/blog/SocialShare';
-import type { BlogPost, RelatedPost, BlogCategory, FAQItem, SiteConfig } from '@/types/blog';
+import type { BlogPost, RelatedPost, FAQItem, SiteConfig } from '@/types/blog';
 
 const NewsletterWidget = dynamic(() => import('@/components/blog/NewsletterWidget'), { ssr: false });
 const CommentsSection = dynamic(() => import('@/components/blog/CommentsSection'), { ssr: false });
@@ -20,13 +20,12 @@ const CommentsSection = dynamic(() => import('@/components/blog/CommentsSection'
 interface BlogPostClientProps {
   post: BlogPost;
   relatedPosts: RelatedPost[];
-  categories: BlogCategory[];
   canonicalUrl: string;
   siteConfig: SiteConfig;
   faqItems: FAQItem[];
 }
 
-export default function BlogPageClient({ post, relatedPosts, categories, canonicalUrl, siteConfig, faqItems }: BlogPostClientProps) {
+export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteConfig, faqItems }: BlogPostClientProps) {
   const headings = extractHeadings(post.content);
   const imageUrl = post.featuredImage?.url || post.og_image?.url;
   const categoryName = post.category?.name;

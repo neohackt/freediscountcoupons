@@ -9,6 +9,7 @@ import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
 import { SITE_URL, STRAPI_URL, BRAND_CONFIG } from '@/lib/strapi';
+import { formatCurrency, resolveCouponCurrency } from '@/lib/formatters/currency';
 import type { Store } from '@/types';
 
 export const revalidate = 60;
@@ -62,16 +63,16 @@ async function getStoreBySlug(slug: string) {
   }
 }
 
-function calculateStats(coupons: any[]) {
+function calculateStats(coupons: any[], store?: { currency?: string | null; country?: string | null }) {
   const totalOffers = coupons.length;
   const verifiedCoupons = coupons.filter(c => c.verified).length;
   const usedToday = coupons.reduce((sum, c) => sum + (c.times_used || 0), 0);
-  const bestDiscount = getBestDiscount(coupons);
+  const bestDiscount = getBestDiscount(coupons, store);
   
   return { totalOffers, verifiedCoupons, usedToday, bestDiscount };
 }
 
-function getBestDiscount(coupons: any[]): string {
+function getBestDiscount(coupons: any[], store?: { currency?: string | null; country?: string | null }): string {
   if (coupons.length === 0) return 'N/A';
   
   const percentageCoupons = coupons.filter(c => c.discount_type === 'percentage');
@@ -84,7 +85,12 @@ function getBestDiscount(coupons: any[]): string {
     return `${maxPercentage}% OFF`;
   }
   if (maxFixed > 0) {
-    return `$${maxFixed} OFF`;
+    // Use first fixed coupon to resolve currency
+    const fixedCoupon = fixedCoupons.find(c => c.discount_value === maxFixed);
+    const currency = resolveCouponCurrency(fixedCoupon || {}, store);
+    return currency
+      ? `${formatCurrency(maxFixed, currency)} OFF`
+      : `${maxFixed} OFF`;
   }
   return 'DEALS';
 }
@@ -147,7 +153,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const expiredCoupons = allCoupons.filter((c: any) => c.is_expired);
   const verifiedCoupons = activeCoupons.filter((c: any) => c.verified);
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
-  const stats = calculateStats(activeCoupons);
+  const stats = calculateStats(activeCoupons, store);
 
   return (
     <>

@@ -41,6 +41,16 @@
     "affiliate_url": {
       "type": "string"
     },
+    "country": {
+      "type": "string",
+      "maxLength": 2,
+      "description": "ISO 3166-1 alpha-2 country code (e.g., IN, US, GB)"
+    },
+    "currency": {
+      "type": "string",
+      "maxLength": 3,
+      "description": "ISO 4217 currency code (e.g., INR, USD, GBP)"
+    },
     "is_popular": {
       "type": "boolean",
       "default": false

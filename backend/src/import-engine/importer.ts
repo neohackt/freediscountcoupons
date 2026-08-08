@@ -211,6 +211,8 @@ async function importStoreRow(
     description: normalized.description || '',
     website_url: normalized.website_url || '',
     affiliate_url: normalized.affiliate_url || '',
+    country: normalized.country || null,
+    currency: normalized.currency || null,
     is_popular: normalized.is_popular || false,
     is_featured: normalized.is_featured || false,
   };
@@ -277,6 +279,7 @@ async function importCouponRow(
     description: normalized.description || '',
     discount_type: normalized.discount_type || 'unknown',
     discount_value: normalized.discount_value || null,
+    currency: normalized.currency || null,
     discount_text: normalized.discount_text || '',
     affiliate_url: normalized.affiliate_url || '',
     verified: normalized.verified || false,

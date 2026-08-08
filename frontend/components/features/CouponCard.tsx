@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { CouponButton } from '@/components/features/CouponButton';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import { formatDiscountText, getExpiryStatus, formatRelativeTime } from '@/lib/utils';
+import { formatDiscount, getExpiryStatus, formatRelativeTime } from '@/lib/utils';
 import type { Coupon } from '@/types';
 
 interface CouponCardProps {
@@ -18,22 +18,12 @@ export function CouponCard({ coupon, showStore = true }: CouponCardProps) {
   const [copiedText, copyToClipboard] = useCopyToClipboard();
 
   const store = coupon.store;
-  const discountDisplay = formatDiscountText(coupon);
+  const discountDisplay = formatDiscount(coupon, coupon.store);
   const { daysLeft } = getExpiryStatus(coupon.expires_at);
   const hasCode = coupon.code && coupon.code.length > 0;
   
   const timesUsed = coupon.times_used || 0;
   const isVerified = coupon.verified;
-
-  const handleClick = () => {
-    if (!isRevealed) {
-      setIsRevealed(true);
-      if (coupon.affiliate_url || store?.affiliate_url) {
-        window.open(coupon.affiliate_url || store?.affiliate_url, '_blank');
-      }
-    }
-    copyToClipboard(coupon.code);
-  };
 
   return (
     <Card className="hover:shadow-lg transition-all border-gray-200 h-full">

@@ -30,6 +30,11 @@
     "discount_value": {
       "type": "decimal"
     },
+    "currency": {
+      "type": "string",
+      "maxLength": 3,
+      "description": "ISO 4217 currency code. Overrides store currency if set."
+    },
     "discount_text": {
       "type": "string"
     },

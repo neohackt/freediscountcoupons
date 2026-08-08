@@ -84,7 +84,7 @@ export default async function HomePage() {
 
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Today's Trending Coupons & Deals</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Today&apos;s Trending Coupons & Deals</h2>
           </div>
           {coupons.length > 0 ? (
             <CouponGrid coupons={coupons as Coupon[]} />

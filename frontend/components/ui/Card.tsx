@@ -1,7 +1,9 @@
 import { cn } from '@/lib/utils';
 import { HTMLAttributes, forwardRef } from 'react';
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {}
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
 
 const Card = forwardRef<HTMLDivElement, CardProps>(({ className, children, ...props }, ref) => (
   <div

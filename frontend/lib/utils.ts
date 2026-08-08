@@ -29,22 +29,7 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDate(date);
 }
 
-export function formatDiscountText(coupon: { discount_type: string; discount_value?: number; discount_text?: string }): string {
-  if (coupon.discount_text) return coupon.discount_text;
-
-  switch (coupon.discount_type) {
-    case 'percentage':
-      return `${coupon.discount_value}% Off`;
-    case 'fixed':
-      return `$${coupon.discount_value} Off`;
-    case 'free_shipping':
-      return 'Free Shipping';
-    case 'bogo':
-      return 'Buy 1 Get 1';
-    default:
-      return 'Deal';
-  }
-}
+export { formatDiscount, formatCurrency, resolveCouponCurrency } from './formatters/currency';
 
 export function getExpiryStatus(expiresAt?: string): { isExpiringSoon: boolean; daysLeft: number } {
   if (!expiresAt) return { isExpiringSoon: false, daysLeft: Infinity };

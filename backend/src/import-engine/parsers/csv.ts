@@ -2,7 +2,15 @@ import { parse } from 'csv-parse';
 import type { ParsedRow } from '../types';
 
 export async function parseCSV(content: Buffer | string): Promise<ParsedRow[]> {
-  const contentString = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+  let contentString = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+
+  // Remove UTF-8 BOM if present (U+FEFF)
+  if (contentString.charCodeAt(0) === 0xFEFF) {
+    contentString = contentString.slice(1);
+  }
+
+  // Normalize line endings
+  contentString = contentString.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   return new Promise((resolve, reject) => {
     const records: ParsedRow[] = [];
@@ -28,6 +36,10 @@ export async function parseCSV(content: Buffer | string): Promise<ParsedRow[]> {
 }
 
 export function detectDelimiter(content: string): string {
+  // Remove BOM before detecting delimiter
+  if (content.charCodeAt(0) === 0xFEFF) {
+    content = content.slice(1);
+  }
   const firstLine = content.split('\n')[0];
   const commaCount = (firstLine.match(/,/g) || []).length;
   const semicolonCount = (firstLine.match(/;/g) || []).length;

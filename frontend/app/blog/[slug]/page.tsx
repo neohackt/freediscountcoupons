@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getPostBySlug, getRelatedPosts, getBlogCategories } from '@/lib/blog';
+import { getPostBySlug, getRelatedPosts } from '@/lib/blog';
 import { SITE_URL } from '@/lib/constants';
 import BlogPageClient from './BlogPageClient';
 
@@ -49,7 +49,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   if (!post) notFound();
 
-  const categories = await getBlogCategories();
   const categoryId = post.category?.id || null;
   const relatedPosts = await getRelatedPosts(post.id, categoryId, 6);
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
@@ -61,7 +60,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     <BlogPageClient
       post={post}
       relatedPosts={relatedPosts}
-      categories={categories}
       canonicalUrl={canonicalUrl}
       siteConfig={siteConfig}
       faqItems={faqItems}
