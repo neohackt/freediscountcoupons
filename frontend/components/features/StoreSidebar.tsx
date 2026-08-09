@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { RatingWidget } from './RatingWidget';
+import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
 
@@ -69,6 +70,14 @@ export function StoreSidebar({ store, stats, similarStores = [] }: StoreSidebarP
           />
         </div>
       </div>
+
+      <BrandStats
+        totalOffers={stats.totalOffers}
+        verifiedCoupons={stats.verifiedCoupons}
+        usedToday={stats.usedToday}
+        bestDiscount={stats.bestDiscount}
+        className="hidden lg:block"
+      />
 
       {similarStores.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6">

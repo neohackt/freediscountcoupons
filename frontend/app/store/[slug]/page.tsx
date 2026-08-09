@@ -293,6 +293,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               verifiedCoupons={stats.verifiedCoupons}
               usedToday={stats.usedToday}
               bestDiscount={stats.bestDiscount}
+              className="block lg:hidden"
             />
 
             {(store.description_html || store.description) && (
