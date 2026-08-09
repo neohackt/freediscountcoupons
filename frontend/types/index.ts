@@ -1,3 +1,23 @@
+/** FAQ in flat array format */
+export interface StoreFaq {
+  question: string;
+  answer: string;
+}
+
+/** FAQ in JSON-LD FAQPage format (from Strapi) */
+export interface StoreFaqJsonLd {
+  '@context'?: string;
+  '@type': 'FAQPage';
+  mainEntity: Array<{
+    '@type': 'Question';
+    name: string;
+    acceptedAnswer: {
+      '@type': 'Answer';
+      text: string;
+    };
+  }>;
+}
+
 export interface Store {
   id: number;
   documentId: string;
@@ -9,7 +29,7 @@ export interface Store {
   } | null;
   description?: string;
   description_html?: string;
-  faqs?: { question: string; answer: string }[];
+  faqs?: StoreFaq[] | StoreFaqJsonLd | null;
   website_url?: string;
   affiliate_url?: string;
   country?: string;

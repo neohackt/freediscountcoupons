@@ -10,9 +10,30 @@ import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
 import { SITE_URL, STRAPI_URL, BRAND_CONFIG } from '@/lib/strapi';
 import { formatCurrency, resolveCouponCurrency } from '@/lib/formatters/currency';
-import type { Store } from '@/types';
+import type { Store, StoreFaq, StoreFaqJsonLd } from '@/types';
 
 export const revalidate = 60;
+
+function normalizeFaqs(raw: StoreFaq[] | StoreFaqJsonLd | null | undefined): StoreFaq[] {
+  if (!raw) return [];
+
+  // JSON-LD FAQPage format
+  if (!Array.isArray(raw) && Array.isArray(raw.mainEntity)) {
+    return raw.mainEntity
+      .filter((q) => q.name && q.acceptedAnswer?.text)
+      .map((q) => ({
+        question: q.name,
+        answer: q.acceptedAnswer.text,
+      }));
+  }
+
+  // Flat array format
+  if (Array.isArray(raw)) {
+    return raw.filter((f) => f.question && f.answer);
+  }
+
+  return [];
+}
 
 export async function generateStaticParams() {
   try {
@@ -273,9 +294,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </div>
             )}
 
-            {store.faqs && store.faqs.length > 0 && (
-              <FaqAccordion faqs={store.faqs} title={`${store.name} Frequently Asked Questions`} />
-            )}
+            {(() => {
+              const faqs = normalizeFaqs(store.faqs);
+              return faqs.length > 0 ? (
+                <FaqAccordion faqs={faqs} title={`${store.name} Frequently Asked Questions`} />
+              ) : null;
+            })()}
 
             <div className="mt-8 text-sm text-gray-400">
               Last updated: {new Date(store.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
