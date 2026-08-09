@@ -72,6 +72,16 @@ html {
   overflow: hidden;
 }
 
+/* ── Responsive Tables in Rich Content ── */
+.rich-text-content.prose table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Hide scrollbar but allow scrolling */
 .scrollbar-hide {
   -ms-overflow-style: none;
