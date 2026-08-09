@@ -4,6 +4,7 @@ import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebar } from '@/components/features/StoreSidebar';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
+import { BrandStats } from '@/components/features/BrandStats';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
 import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
@@ -286,6 +287,13 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 <p className="text-gray-400 text-sm">Check back soon for new deals!</p>
               </div>
             )}
+
+            <BrandStats
+              totalOffers={stats.totalOffers}
+              verifiedCoupons={stats.verifiedCoupons}
+              usedToday={stats.usedToday}
+              bestDiscount={stats.bestDiscount}
+            />
 
             {(store.description_html || store.description) && (
               <div className="mt-12 bg-white rounded-xl border border-gray-200 p-6">
