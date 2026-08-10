@@ -240,19 +240,19 @@ function normalizeDate(value: string): string | null {
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
-  // YYYY-MM-DD or YYYY/MM/DD
+  // YYYY-MM-DD or YYYY/MM/DD - USE UTC to prevent date shifting
   const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
-    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+    const d = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59));
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
-  // DD-MM-YYYY or DD/MM/YYYY
+  // DD-MM-YYYY or DD/MM/YYYY - USE UTC to prevent date shifting
   const euMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (euMatch) {
     const [, day, month, year] = euMatch;
-    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+    const d = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59));
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
