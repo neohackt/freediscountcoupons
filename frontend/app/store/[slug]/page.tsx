@@ -208,10 +208,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 {store.name} Coupon Codes for <span className="text-blue-600">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
               </h1>
-              
-              <p className="text-gray-600 mb-2">
-                Save with popular {store.name} promo codes.
-              </p>
 
               <p className="text-lg font-semibold text-gray-900">
                 {allCoupons.length} Available Coupons
