@@ -48,11 +48,11 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
           <div className="flex items-center gap-4 sm:block sm:flex-shrink-0">
             <div className={cn(
-              "flex-shrink-0 w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center border border-dashed rounded-md bg-white",
+              "flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 p-1 flex items-center justify-center border border-dashed rounded-md bg-white",
               isExpired ? "border-gray-200" : "border-gray-300"
             )}>
               <span className={cn(
-                "text-xl sm:text-2xl font-bold tracking-wider",
+                "min-w-0 max-w-full text-base sm:text-2xl font-bold tracking-normal leading-tight text-center whitespace-normal break-words",
                 isExpired ? "text-gray-400" : "text-gray-900"
               )}>
                 {discountText}
