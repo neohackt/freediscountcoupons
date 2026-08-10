@@ -129,8 +129,9 @@ export default ({ strapi }) => ({
     const [stores, categories, coupons] = await Promise.all([
       strapi.db.query('api::store.store').findMany({
         where: {
-          $or: [
+          $and: [
             { name: { $containsi: q } },
+            { publishedAt: { $notNull: true } },
           ],
         },
         populate: ['logo'],

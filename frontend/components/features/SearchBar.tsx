@@ -129,7 +129,7 @@ export default function SearchBar({ className = '', placeholder = 'Search stores
                 onClick={() => { window.location.href = `/store/${item.store?.slug || ''}`; }}
               >
                 <span className="text-lg">{getIcon('coupon')}</span>
-                <span className="flex-1 text-sm font-medium">{item.title}</span>
+                <span className="flex-1 text-sm font-medium text-gray-900">{item.title}</span>
                 <span className="text-xs text-gray-400">{getSubtitle({ type: 'coupon', store: item.store })}</span>
               </li>
             );
@@ -155,7 +155,7 @@ export default function SearchBar({ className = '', placeholder = 'Search stores
                 onClick={() => { window.location.href = `/deals/${item.slug}`; }}
               >
                 <span className="text-lg">{getIcon('category')}</span>
-                <span className="flex-1 text-sm font-medium">{item.name}</span>
+              <span className="flex-1 text-sm font-medium text-gray-900">{item.name}</span>
                 <span className="text-xs text-gray-400">Category</span>
               </li>
             );
