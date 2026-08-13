@@ -17,8 +17,8 @@ export function useAutocomplete(initialValue: string = '') {
 
   const allItems: AutocompleteItem[] = [
     ...results.stores,
-    ...results.categories,
     ...results.coupons,
+    ...results.categories,
   ].slice(0, 8);
 
   const fetchResults = useCallback(async (q: string) => {

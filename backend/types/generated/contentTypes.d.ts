@@ -617,6 +617,10 @@ export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 3;
+      }>;
     description: Schema.Attribute.Text;
     discount_text: Schema.Attribute.String;
     discount_type: Schema.Attribute.Enumeration<
@@ -715,10 +719,18 @@ export interface ApiStoreStore extends Struct.CollectionTypeSchema {
       'manyToMany',
       'api::category.category'
     >;
+    country: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2;
+      }>;
     coupons: Schema.Attribute.Relation<'oneToMany', 'api::coupon.coupon'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 3;
+      }>;
     description: Schema.Attribute.Text;
     description_html: Schema.Attribute.Text;
     faqs: Schema.Attribute.JSON;

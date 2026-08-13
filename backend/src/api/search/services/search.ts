@@ -18,16 +18,18 @@ export default ({ strapi }) => ({
     const [stores, categories, coupons] = await Promise.all([
       strapi.db.query('api::store.store').findMany({
         where: {
-          $or: [
+          $and: [
             { name: { $containsi: q } },
+            { publishedAt: { $notNull: true } },
           ],
         },
         populate: ['logo', 'categories'],
       }),
       strapi.db.query('api::category.category').findMany({
         where: {
-          $or: [
+          $and: [
             { name: { $containsi: q } },
+            { publishedAt: { $notNull: true } },
           ],
         },
       }),
@@ -145,7 +147,10 @@ export default ({ strapi }) => ({
       }),
       strapi.db.query('api::coupon.coupon').findMany({
         where: {
-          title: { $containsi: q },
+          $or: [
+            { title: { $containsi: q } },
+            { store: { name: { $containsi: q } } },
+          ],
           is_expired: false,
         },
         populate: ['store', 'store.logo'],

@@ -104,7 +104,7 @@ export default function SearchBar({ className = '', placeholder = 'Search stores
               onClick={() => { window.location.href = `/store/${item.slug}`; }}
             >
               <span className="text-lg">{getIcon('store')}</span>
-              <span className="flex-1 text-sm font-medium">{item.name}</span>
+              <span className="flex-1 text-sm font-medium text-gray-900">{item.name}</span>
               <span className="text-xs text-gray-400">{getSubtitle({ type: 'store' })}</span>
             </li>
           ))}
