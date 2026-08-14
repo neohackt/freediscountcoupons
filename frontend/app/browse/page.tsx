@@ -56,7 +56,7 @@ export default async function BrowsePage() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumbs items={[{ label: 'Categories' }]} className="mb-6" />
+        <Breadcrumbs items={[{ label: 'Categories' }]} className="mb-6 text-gray-700 [&_a:hover]:text-gray-900 [&_span:not(:last-child)]:text-gray-400" />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse by Category</h1>

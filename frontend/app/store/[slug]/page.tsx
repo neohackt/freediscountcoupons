@@ -194,7 +194,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               { label: 'Stores', href: '/stores' },
               { label: store.name },
             ]}
-            className="text-blue-100 [&_a:hover]:text-white [&_span:not(:last-child)]:text-blue-200"
+            className="text-white [&_a:hover]:text-white [&_span:not(:last-child)]:text-blue-100"
           />
         </Container>
       </div>
