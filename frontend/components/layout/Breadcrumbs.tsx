@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export interface BreadcrumbItem {
   label: string;
@@ -12,22 +13,24 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className={className}>
-      <ol className="flex items-center gap-2 text-sm text-gray-500">
+    <nav aria-label="Breadcrumb">
+      <ol className={cn("flex items-center gap-2 text-sm text-gray-500", className)}>
         <li>
-          <Link href="/" className="hover:text-gray-700 transition-colors">
+          <Link href="/" className="text-current transition-colors">
             Home
           </Link>
         </li>
         {items.map((item, index) => (
           <li key={index} className="flex items-center gap-2">
-            <span>/</span>
+            <span className="text-current/60">/</span>
             {item.href ? (
-              <Link href={item.href} className="hover:text-gray-700 transition-colors">
+              <Link href={item.href} className="text-current transition-colors">
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-900">{item.label}</span>
+              <span className="font-medium text-current">
+                {item.label}
+              </span>
             )}
           </li>
         ))}
