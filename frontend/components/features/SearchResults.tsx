@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { SearchResultStore, SearchResultCategory, SearchResultCoupon } from '@/types';
+import { getMediaUrl } from '@/lib/strapi/media';
 
 interface SearchResultsProps {
   stores: SearchResultStore[];
@@ -18,7 +19,7 @@ function StoreCard({ store }: { store: SearchResultStore }) {
     >
       {store.logo?.url ? (
         <img
-          src={store.logo.url}
+          src={getMediaUrl(store.logo.url)}
           alt={`${store.name} logo`}
           className="w-12 h-12 rounded-lg object-cover bg-gray-100"
         />
