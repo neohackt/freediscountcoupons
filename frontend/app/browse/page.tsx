@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: 'Browse Categories',
   description: 'Browse coupons and deals by category. Find discounts on electronics, clothing, beauty, home goods, and more.',
   openGraph: {
-    title: 'Browse Categories | CouponDeals',
+    title: 'Browse Categories | FreeDiscountCoupons',
     description: 'Browse coupons and deals by category. Find discounts on electronics, clothing, beauty, home goods, and more.',
     url: `${SITE_URL}/browse`,
   },

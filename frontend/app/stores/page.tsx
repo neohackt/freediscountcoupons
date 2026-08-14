@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   title: 'All Stores',
   description: 'Browse all stores and find coupons, promo codes, and deals from your favorite retailers. Save money with verified discount codes.',
   openGraph: {
-    title: 'All Stores | CouponDeals',
+    title: 'All Stores | FreeDiscountCoupons',
     description: 'Browse all stores and find coupons, promo codes, and deals from your favorite retailers.',
     url: `${SITE_URL}/stores`,
   },

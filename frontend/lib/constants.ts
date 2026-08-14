@@ -1,5 +1,5 @@
 export const BRAND_CONFIG = {
-  name: 'CouponDeals',
+  name: 'FreeDiscountCoupons',
   tagline: 'Save More, Pay Less',
   description: 'Find the best coupons, promo codes, and deals from thousands of stores',
 
@@ -32,8 +32,8 @@ export const BRAND_CONFIG = {
   },
 
   seo: {
-    title: 'CouponDeals - Best Coupons & Promo Codes',
-    titleTemplate: '%s | CouponDeals',
+    title: 'FreeDiscountCoupons - Best Coupons & Promo Codes',
+    titleTemplate: '%s | FreeDiscountCoupons',
     description: 'Save money with the latest coupons, promo codes, and deals from thousands of stores. Find verified discount codes and start saving today!',
     keywords: ['coupons', 'promo codes', 'deals', 'discounts', 'savings', 'voucher codes'],
   },

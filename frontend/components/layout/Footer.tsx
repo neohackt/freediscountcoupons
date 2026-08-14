@@ -57,7 +57,7 @@ export async function Footer() {
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CD</span>
+                <span className="text-white font-bold text-sm">FDC</span>
               </div>
               <span className="font-bold text-xl text-white">{BRAND_CONFIG.name}</span>
             </Link>

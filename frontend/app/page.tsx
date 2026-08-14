@@ -11,11 +11,11 @@ import type { Store, Category, Coupon } from '@/types';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'CouponDeals - Best Coupons & Promo Codes',
-  description: 'Save money with the latest coupons, promo codes, and deals from thousands of stores. Find verified discount codes and start saving today!',
+  title: 'FreeDiscountCoupons - Best Coupons, Promo Codes & Deals',
+  description: 'Find the latest coupons, promo codes and deals from thousands of stores. Save more on travel, shopping, electronics, fashion and more with FreeDiscountCoupons.',
   openGraph: {
-    title: 'CouponDeals - Best Coupons & Promo Codes',
-    description: 'Save money with the latest coupons, promo codes, and deals from thousands of stores.',
+    title: 'FreeDiscountCoupons - Best Coupons, Promo Codes & Deals',
+    description: 'Find the latest coupons, promo codes and deals from thousands of stores. Save more on travel, shopping, electronics, fashion and more with FreeDiscountCoupons.',
     url: SITE_URL,
   },
   alternates: {
