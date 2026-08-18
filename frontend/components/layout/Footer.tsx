@@ -64,7 +64,6 @@ export async function Footer() {
                 height={32}
                 className="h-8 w-auto"
               />
-              <span className="font-bold text-xl text-white">{BRAND_CONFIG.name}</span>
             </Link>
             <p className="text-gray-400 text-sm">
               {BRAND_CONFIG.description}

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { BRAND_CONFIG } from '@/lib/constants';
 import { MobileMenu } from './MobileMenu';
 
 const navigation = [
@@ -23,7 +22,6 @@ export function Header() {
                 height={32}
                 className="h-8 w-auto"
               />
-              <span className="font-bold text-xl text-gray-900">{BRAND_CONFIG.name}</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
