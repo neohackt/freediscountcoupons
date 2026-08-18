@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { BRAND_CONFIG } from '@/lib/constants';
 import { MobileMenu } from './MobileMenu';
 
@@ -15,9 +16,13 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">FDC</span>
-              </div>
+              <Image
+                src="/images/FDC-01.png"
+                alt="FreeDiscountCoupons"
+                width={120}
+                height={32}
+                className="h-8 w-auto"
+              />
               <span className="font-bold text-xl text-gray-900">{BRAND_CONFIG.name}</span>
             </Link>
 

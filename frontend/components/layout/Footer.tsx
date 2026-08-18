@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { BRAND_CONFIG, STRAPI_URL } from '@/lib/strapi';
 
 interface FooterStore {
@@ -56,9 +57,13 @@ export async function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">FDC</span>
-              </div>
+              <Image
+                src="/images/FDC-01.png"
+                alt="FreeDiscountCoupons"
+                width={120}
+                height={32}
+                className="h-8 w-auto"
+              />
               <span className="font-bold text-xl text-white">{BRAND_CONFIG.name}</span>
             </Link>
             <p className="text-gray-400 text-sm">
