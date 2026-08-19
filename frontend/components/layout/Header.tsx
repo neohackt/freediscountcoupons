@@ -18,9 +18,9 @@ export function Header() {
               <Image
                 src="/images/FDC-01.png"
                 alt="FreeDiscountCoupons"
-                width={120}
-                height={32}
-                className="h-8 w-auto"
+                width={150}
+                height={40}
+                className="h-10 w-auto"
               />
             </Link>
 
