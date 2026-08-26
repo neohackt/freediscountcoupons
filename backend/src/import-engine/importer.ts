@@ -205,6 +205,13 @@ async function importStoreRow(
   });
 
   if (existingStore) {
+    // Resolve category names to IDs for update
+    const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
+    if (categoryIds.length > 0) {
+      await strapi.entityService.update('api::store.store', existingStore.id, {
+        data: { categories: categoryIds },
+      });
+    }
     return { id: existingStore.id, skipped: true, slug: existingStore.slug };
   }
 
@@ -250,6 +257,9 @@ async function importStoreRow(
 
   const slug = normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
 
+  // Resolve category names to IDs
+  const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
+
   const createData: Record<string, unknown> = {
     name: normalized.name,
     slug,
@@ -260,6 +270,7 @@ async function importStoreRow(
     currency: normalized.currency || null,
     is_popular: normalized.is_popular || false,
     is_featured: normalized.is_featured || false,
+    categories: categoryIds,
   };
 
   if (logoId) {
