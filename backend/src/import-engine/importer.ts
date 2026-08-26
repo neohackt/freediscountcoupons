@@ -19,6 +19,33 @@ interface ImportContext {
   sourceUrl?: string;
 }
 
+async function resolveCategoryIds(strapi: StrapiType, categoryNames: string): Promise<number[]> {
+  if (!categoryNames || categoryNames.trim() === '') return [];
+
+  const names = categoryNames
+    .split(',')
+    .map(n => n.trim())
+    .filter(Boolean);
+
+  if (names.length === 0) return [];
+
+  const categories = await strapi.db.query('api::category.category').findMany({
+    where: {
+      name: { $in: names },
+      publishedAt: { $notNull: true },
+    },
+  });
+
+  const foundNames = new Set(categories.map(c => c.name));
+  const missing = names.filter(n => !foundNames.has(n));
+
+  if (missing.length > 0) {
+    throw new Error(`Categories not found: ${missing.join(', ')}`);
+  }
+
+  return categories.map(c => c.id);
+}
+
 export async function processImport(context: ImportContext): Promise<{
   imported: number;
   skipped: number;
@@ -280,6 +307,9 @@ async function importCouponRow(
     throw new Error(`Store not found: ${normalized.store_slug}`);
   }
 
+  // Resolve category names to IDs
+  const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
+
   const existingCoupon = await strapi.db.query('api::coupon.coupon').findOne({
     where: {
       code: normalized.code,
@@ -288,6 +318,12 @@ async function importCouponRow(
   });
 
   if (existingCoupon) {
+    // If category names provided, update the categories relation
+    if (categoryIds.length > 0) {
+      await strapi.entityService.update('api::coupon.coupon', existingCoupon.id, {
+        data: { categories: categoryIds },
+      });
+    }
     return { id: existingCoupon.id, skipped: true, storeSlug, slug: existingCoupon.slug };
   }
 
@@ -307,6 +343,7 @@ async function importCouponRow(
     success_rate: 0,
     times_used: 0,
     store: storeId,
+    categories: categoryIds,
   };
 
   // Only include expires_at if it has a value
