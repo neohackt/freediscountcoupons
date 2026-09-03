@@ -31,6 +31,8 @@ export function StoreSidebar({ store, stats, similarStores = [] }: StoreSidebarP
   
   const websiteUrl = store.affiliate_url || store.website_url || '#';
 
+  console.log("websiteUrl", websiteUrl);
+
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
