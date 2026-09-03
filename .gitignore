@@ -52,3 +52,9 @@ backend/backups/
 # OS
 Thumbs.db
 nul
+
+# data/sample files
+coupons.csv
+stores.csv
+sample_*.csv
+test_*.csv
