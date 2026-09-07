@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
+import { useSearchParams } from 'next/navigation';
 
 const DESCRIPTION_MAX_LENGTH = 140;
 
@@ -19,8 +20,22 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
   const [isExpanded, setIsExpanded] = useState(false);
 
   const store = coupon.store;
-  const websiteUrl = store?.affiliate_url || store?.website_url || '#';
-  const couponLink = coupon.affiliate_url || websiteUrl;
+
+  // Get gclid and keyword from current page URL
+  const searchParams = useSearchParams();
+  const gclid = searchParams.get('gclid') || '';
+  const keyword = searchParams.get('keyword') || '';
+
+  let websiteUrl = store?.affiliate_url || store?.website_url || '#';
+  websiteUrl = websiteUrl
+    .replaceAll('{gclid}', encodeURIComponent(gclid))
+    .replaceAll('{keyword}', encodeURIComponent(keyword));
+
+  let couponLink = coupon.affiliate_url || websiteUrl;
+  couponLink = couponLink
+    .replaceAll('{gclid}', encodeURIComponent(gclid))
+    .replaceAll('{keyword}', encodeURIComponent(keyword));
+
   const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 
   const discountText = formatDiscount(coupon, coupon.store);

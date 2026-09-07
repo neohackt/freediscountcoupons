@@ -4,6 +4,7 @@ import { RatingWidget } from './RatingWidget';
 import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
+import { useSearchParams } from 'next/navigation';
 
 interface StoreSidebarProps {
   store: Store;
@@ -28,10 +29,16 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
 
 export function StoreSidebar({ store, stats, similarStores = [] }: StoreSidebarProps) {
   const logoUrl = getStoreLogo(store);
-  
-  const websiteUrl = store.affiliate_url || store.website_url || '#';
 
-  console.log("websiteUrl", websiteUrl);
+  // Get gclid and keyword from current page URL
+  const searchParams = useSearchParams();
+  const gclid = searchParams.get('gclid') || '';
+  const keyword = searchParams.get('keyword') || '';
+
+  let websiteUrl = store?.affiliate_url || store?.website_url || '#';
+  websiteUrl = websiteUrl
+    .replaceAll('{gclid}', encodeURIComponent(gclid))
+    .replaceAll('{keyword}', encodeURIComponent(keyword));
 
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">
