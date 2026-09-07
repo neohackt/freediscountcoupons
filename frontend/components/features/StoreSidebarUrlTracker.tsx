@@ -1,17 +1,21 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { StoreSidebar } from './StoreSidebar';
+import type { Store } from '@/types';
 
 interface StoreSidebarUrlTrackerProps {
-  store: {
-    affiliate_url?: string | null;
-    website_url?: string | null;
+  store: Store;
+  stats: {
+    totalOffers: number;
+    verifiedCoupons: number;
+    usedToday: number;
+    bestDiscount: string;
   };
-  children: (websiteUrl: string) => ReactNode;
+  similarStores?: Store[];
 }
 
-export function StoreSidebarUrlTracker({ store, children }: StoreSidebarUrlTrackerProps) {
+export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSidebarUrlTrackerProps) {
   const searchParams = useSearchParams();
   const gclid = searchParams.get('gclid') || '';
   const keyword = searchParams.get('keyword') || '';
@@ -21,5 +25,5 @@ export function StoreSidebarUrlTracker({ store, children }: StoreSidebarUrlTrack
     .replaceAll('{gclid}', encodeURIComponent(gclid))
     .replaceAll('{keyword}', encodeURIComponent(keyword));
 
-  return <>{children(websiteUrl)}</>;
+  return <StoreSidebar store={store} stats={stats} similarStores={similarStores} websiteUrl={websiteUrl} />;
 }
