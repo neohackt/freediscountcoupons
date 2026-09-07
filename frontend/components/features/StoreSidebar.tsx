@@ -6,7 +6,6 @@ import { RatingWidget } from './RatingWidget';
 import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
-import { useSearchParams } from 'next/navigation';
 
 interface StoreSidebarProps {
   store: Store;
@@ -17,6 +16,7 @@ interface StoreSidebarProps {
     bestDiscount: string;
   };
   similarStores?: Store[];
+  websiteUrl: string;
 }
 
 function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
@@ -29,18 +29,8 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
   return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&size=${size}&url=http://${domain}`;
 }
 
-export function StoreSidebar({ store, stats, similarStores = [] }: StoreSidebarProps) {
+export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: StoreSidebarProps) {
   const logoUrl = getStoreLogo(store);
-
-  // Get gclid and keyword from current page URL
-  const searchParams = useSearchParams();
-  const gclid = searchParams.get('gclid') || '';
-  const keyword = searchParams.get('keyword') || '';
-
-  let websiteUrl = store?.affiliate_url || store?.website_url || '#';
-  websiteUrl = websiteUrl
-    .replaceAll('{gclid}', encodeURIComponent(gclid))
-    .replaceAll('{keyword}', encodeURIComponent(keyword));
 
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">

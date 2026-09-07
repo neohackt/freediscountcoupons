@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebar } from '@/components/features/StoreSidebar';
+import { StoreSidebarUrlTracker } from '@/components/features/StoreSidebarUrlTracker';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
 import { BrandStats } from '@/components/features/BrandStats';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
@@ -201,7 +203,13 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
       <Container className="py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <StoreSidebar store={store as Store} stats={stats} similarStores={similarStores} />
+          <Suspense fallback={<div className="w-full lg:w-80 flex-shrink-0" />}>
+            <StoreSidebarUrlTracker store={store as Store}>
+              {(websiteUrl) => (
+                <StoreSidebar store={store as Store} stats={stats} similarStores={similarStores} websiteUrl={websiteUrl} />
+              )}
+            </StoreSidebarUrlTracker>
+          </Suspense>
 
           <div className="flex-1 min-w-0">
             <div className="mb-8">
