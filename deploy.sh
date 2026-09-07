@@ -17,8 +17,14 @@ mkdir -p "$LOG_DIR"
 
 cd "$PROJECT_DIR"
 
-echo "📥 Pulling latest changes from GitHub..."
-git pull origin main
+echo "📥 Syncing latest changes from GitHub..."
+
+git fetch origin main
+
+echo "🧹 Discarding local tracked changes..."
+git reset --hard origin/main
+
+echo "✅ Server synced with GitHub"
 
 # ============================================
 # BACKEND DEPLOY
@@ -60,7 +66,7 @@ echo "✅ Waiting for services to be ready..."
 sleep 8
 
 # Backend health check
-if curl -f -s http://localhost:1337/api/stores?pagination[pageSize]=1 > /dev/null; then
+if curl -f -s --max-time 15 "https://api.freediscountcoupons.com/api/stores?pagination[pageSize]=1" > /dev/null; then
     echo "✅ Backend (Strapi) is healthy!"
 else
     echo "⚠️  Backend health check failed. Check logs:"
@@ -69,7 +75,7 @@ else
 fi
 
 # Frontend health check
-if curl -f -s http://localhost:3000 > /dev/null; then
+if curl -f -s --max-time 15 "https://freediscountcoupons.com" > /dev/null; then
     echo "✅ Frontend (Next.js) is healthy!"
 else
     echo "⚠️  Frontend health check failed. Check logs:"
@@ -89,4 +95,4 @@ echo "   pm2 logs coupon-frontend    # Frontend logs"
 echo "   pm2 logs coupon-backend     # Backend logs"
 echo "   pm2 status                  # Check status"
 echo "   pm2 monit                   # Monitor resources"
-echo "   ./deploy.sh                 # Redeploy"
+echo "   ./deploy.sh                 # Redeploy""
