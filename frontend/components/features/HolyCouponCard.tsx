@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
-import { useSearchParams } from 'next/navigation';
+import { getTrackingValues, getTrackedCouponLink, initializeTracking } from '@/lib/tracking';
 
 const DESCRIPTION_MAX_LENGTH = 140;
 
@@ -21,20 +21,16 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
 
   const store = coupon.store;
 
-  // Get gclid and keyword from current page URL
-  const searchParams = useSearchParams();
-  const gclid = searchParams.get('gclid') || '';
-  const keyword = searchParams.get('keyword') || '';
+  // Initialize tracking from URL params and get persisted values
+  initializeTracking();
+  const { gclid, keyword } = getTrackingValues();
 
-  let websiteUrl = store?.affiliate_url || store?.website_url || '#';
-  websiteUrl = websiteUrl
-    .replaceAll('{gclid}', encodeURIComponent(gclid))
-    .replaceAll('{keyword}', encodeURIComponent(keyword));
-
-  let couponLink = coupon.affiliate_url || websiteUrl;
-  couponLink = couponLink
-    .replaceAll('{gclid}', encodeURIComponent(gclid))
-    .replaceAll('{keyword}', encodeURIComponent(keyword));
+  const couponLink = getTrackedCouponLink(
+    coupon.affiliate_url,
+    store?.website_url || '#',
+    gclid,
+    keyword
+  );
 
   const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
 import { StoreSidebar } from './StoreSidebar';
 import type { Store } from '@/types';
+import { getTrackingValues, initializeTracking } from '@/lib/tracking';
 
 interface StoreSidebarUrlTrackerProps {
   store: Store;
@@ -16,9 +16,8 @@ interface StoreSidebarUrlTrackerProps {
 }
 
 export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSidebarUrlTrackerProps) {
-  const searchParams = useSearchParams();
-  const gclid = searchParams.get('gclid') || '';
-  const keyword = searchParams.get('keyword') || '';
+  initializeTracking();
+  const { gclid, keyword } = getTrackingValues();
 
   let websiteUrl = store?.affiliate_url || store?.website_url || '#';
   websiteUrl = websiteUrl
