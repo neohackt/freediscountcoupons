@@ -38,6 +38,7 @@ export function CouponButton({
     navigator.clipboard.writeText(code);
     setInternalCopied(true);
     onCopy?.();
+    onReveal?.();
     setTimeout(() => setInternalCopied(false), 2000);
   };
 
