@@ -217,12 +217,13 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </p>
             </div>
 
+            <Suspense fallback={<div className="space-y-4"><div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" /><div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" /><div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" /></div>}>
             {verifiedCoupons.length > 0 && (
               <section className="mb-10">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-sm font-semibold">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     Top Verified
                   </div>
@@ -279,6 +280,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 </div>
               </section>
             )}
+          </Suspense>
 
             {activeCoupons.length === 0 && expiredCoupons.length === 0 && (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
