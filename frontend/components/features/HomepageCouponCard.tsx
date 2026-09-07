@@ -6,6 +6,7 @@ import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
+import { getTrackedCouponLink, initializeTracking, getTrackingValues } from '@/lib/tracking';
 
 const DESCRIPTION_MAX_LENGTH = 140;
 
@@ -19,7 +20,18 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const store = coupon.store;
-  const couponLink = coupon.affiliate_url || store?.affiliate_url || store?.website_url || '#';
+
+  // Initialize tracking from URL params and get persisted values
+  initializeTracking();
+  const { gclid, keyword } = getTrackingValues();
+
+  const couponLink = getTrackedCouponLink(
+    coupon.affiliate_url,
+    store?.affiliate_url || store?.website_url || '#',
+    gclid,
+    keyword
+  );
+
   const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 
   const discountText = formatDiscount(coupon, coupon.store);
