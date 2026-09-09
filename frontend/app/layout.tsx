@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 import { OrganizationJsonLd } from "@/components/seo/OrganizationJsonLd";
 import { WebSiteJsonLd } from "@/components/seo/WebSiteJsonLd";
 import { BRAND_CONFIG, SITE_URL } from "@/lib/constants";
+import { GoogleAnalytics } from '@next/third-parties/google';
+import { ClarityProvider } from '@/components/analytics/ClarityProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,6 +42,12 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || '',
+    other: {
+      'msvalidate.01': process.env.NEXT_PUBLIC_BING_VERIFICATION || '',
+    },
+  },
 };
 
 export default function RootLayout({
@@ -52,6 +60,8 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-gray-50`}>
         <OrganizationJsonLd />
         <WebSiteJsonLd />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ''} />
+        <ClarityProvider />
         <div className="min-h-screen flex flex-col">
           <Header />
           <main className="flex-1">
