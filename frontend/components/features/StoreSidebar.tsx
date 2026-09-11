@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RatingWidget } from './RatingWidget';
 import { BrandStats } from './BrandStats';
+import { SimilarStores } from './SimilarStores';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
 
@@ -80,33 +81,11 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
         className="hidden lg:block"
       />
 
-      {similarStores.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6">
-          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">
-            Similar Stores
-          </h3>
-          <div className="border-t border-gray-100 pt-3">
-            <ul className="space-y-2">
-              {similarStores.map((s) => (
-                <li key={s.id || s.slug}>
-                  <Link
-                    href={`/store/${s.slug}`}
-                    className="text-sm text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    {s.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={`/category/${store.categories?.[0]?.slug || ''}`}
-              className="block mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 uppercase tracking-wide"
-            >
-              View All →
-            </Link>
-          </div>
-        </div>
-      )}
+      <SimilarStores
+        similarStores={similarStores}
+        storeCategories={store.categories}
+        className="hidden lg:block"
+      />
     </aside>
   );
 }

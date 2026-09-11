@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebarUrlTracker } from '@/components/features/StoreSidebarUrlTracker';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
 import { BrandStats } from '@/components/features/BrandStats';
+import { SimilarStores } from '@/components/features/SimilarStores';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
 import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
@@ -304,12 +305,18 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </div>
             )}
 
-            {(() => {
+{(() => {
               const faqs = normalizeFaqs(store.faqs);
               return faqs.length > 0 ? (
                 <FaqAccordion faqs={faqs} title={`${store.name} Frequently Asked Questions`} />
               ) : null;
-            })()}
+            })}
+
+            <SimilarStores
+              similarStores={similarStores}
+              storeCategories={store.categories}
+              className="block lg:hidden"
+            />
 
             <div className="mt-8 text-sm text-gray-400">
               Last updated: {new Date(store.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
