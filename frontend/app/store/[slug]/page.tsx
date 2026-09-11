@@ -313,8 +313,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             })}
 
             <SimilarStores
-              similarStores={similarStores}
-              storeCategories={store.categories}
+              similarStores={similarStores.map((s) => ({ id: s.id, slug: s.slug, name: s.name }))}
+              categorySlug={store.categories?.[0]?.slug}
               className="block lg:hidden"
             />
 

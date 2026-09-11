@@ -8,6 +8,12 @@ import { SimilarStores } from './SimilarStores';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
 
+interface SimilarStore {
+  id: number | string;
+  slug: string;
+  name: string;
+}
+
 interface StoreSidebarProps {
   store: Store;
   stats: {
@@ -32,6 +38,14 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
 
 export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: StoreSidebarProps) {
   const logoUrl = getStoreLogo(store);
+
+  const similarStoresData = similarStores.map((s) => ({
+    id: s.id,
+    slug: s.slug,
+    name: s.name,
+  }));
+
+  const categorySlug = store.categories?.[0]?.slug;
 
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">
@@ -63,7 +77,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
           >
             Shop Now at {store.name}
           </a>
-          
+           
           <RatingWidget 
             storeId={store.id} 
             storeName={store.name}
@@ -82,8 +96,8 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
       />
 
       <SimilarStores
-        similarStores={similarStores}
-        storeCategories={store.categories}
+        similarStores={similarStoresData}
+        categorySlug={categorySlug}
         className="hidden lg:block"
       />
     </aside>

@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import type { Store } from '@/types';
+
+interface SimilarStore {
+  id: number | string;
+  slug: string;
+  name: string;
+}
 
 interface SimilarStoresProps {
-  similarStores: Store[];
-  storeCategories?: Store['categories'];
+  similarStores: SimilarStore[];
+  categorySlug?: string;
   className?: string;
 }
 
-export function SimilarStores({ similarStores, storeCategories, className }: SimilarStoresProps) {
+export function SimilarStores({ similarStores, categorySlug, className }: SimilarStoresProps) {
   if (!similarStores || similarStores.length === 0) return null;
 
   return (
@@ -31,7 +36,7 @@ export function SimilarStores({ similarStores, storeCategories, className }: Sim
           ))}
         </ul>
         <Link
-          href={`/category/${storeCategories?.[0]?.slug || ''}`}
+          href={`/category/${categorySlug || ''}`}
           className="block mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 uppercase tracking-wide"
         >
           View All →
