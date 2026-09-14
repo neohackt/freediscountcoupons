@@ -31,6 +31,7 @@ export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSid
         name: store.name,
         website_url: store.website_url,
         affiliate_url: store.affiliate_url,
+        logo: store.logo?.url ? { url: store.logo.url } : null,
         categories: store.categories?.map((c) => ({ slug: c.slug })) || [],
       }
     : null;

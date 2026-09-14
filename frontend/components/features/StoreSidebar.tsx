@@ -23,6 +23,7 @@ interface StoreSidebarProps {
   store: {
     id: number;
     name: string;
+    logo?: { url: string } | null;
     categories?: { slug: string }[];
   } | null;
   stats: {
