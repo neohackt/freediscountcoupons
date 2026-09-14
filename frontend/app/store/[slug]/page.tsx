@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebarUrlTracker } from '@/components/features/StoreSidebarUrlTracker';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
 import { BrandStats } from '@/components/features/BrandStats';
-import { SimilarStores } from '@/components/features/SimilarStores';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
 import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
@@ -312,11 +312,33 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               ) : null;
             })}
 
-            <SimilarStores
-              similarStores={similarStores.map((s) => ({ id: s.id, slug: s.slug, name: s.name }))}
-              categorySlug={store.categories?.[0]?.slug}
-              className="block lg:hidden"
-            />
+            {similarStores.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6 block lg:hidden">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">
+                  Similar Stores
+                </h3>
+                <div className="border-t border-gray-100 pt-3">
+                  <ul className="space-y-2">
+                    {similarStores.map((s) => (
+                      <li key={s.id || s.slug}>
+                        <Link
+                          href={`/store/${s.slug}`}
+                          className="text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                        >
+                          {s.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={`/category/${store.categories?.[0]?.slug || ''}`}
+                    className="block mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 uppercase tracking-wide"
+                  >
+                    View All →
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="mt-8 text-sm text-gray-400">
               Last updated: {new Date(store.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
