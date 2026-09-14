@@ -178,6 +178,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const verifiedCoupons = activeCoupons.filter((c: any) => c.verified);
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
   const stats = calculateStats(activeCoupons, store);
+  const faqs = normalizeFaqs(store.faqs);
 
   return (
     <>
@@ -344,12 +345,9 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </div>
             )}
 
-{(() => {
-              const faqs = normalizeFaqs(store.faqs);
-              return faqs.length > 0 ? (
-                <FaqAccordion faqs={faqs} title={`${store.name} Frequently Asked Questions`} />
-              ) : null;
-            })}
+{faqs.length > 0 ? (
+              <FaqAccordion faqs={faqs} title={`${store.name} Frequently Asked Questions`} />
+            ) : null}
 
             {similarStores.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6 block lg:hidden">
