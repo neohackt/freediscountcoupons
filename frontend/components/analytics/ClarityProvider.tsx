@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 
-const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_ID || '';
+const CLARITY_PROJECT_ID =
+  process.env.NEXT_PUBLIC_CLARITY_ID || 'yi4uovy8hx';
 
 interface ClarityFunction {
   (...args: unknown[]): void;
