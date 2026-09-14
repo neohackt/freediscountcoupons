@@ -7,15 +7,31 @@ import { BrandStats } from './BrandStats';
 import type { Store } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
 
+interface SanitizedStore {
+  id: number;
+  name: string;
+  categories?: { slug: string }[];
+}
+
+interface SanitizedSimilarStore {
+  id: number | string;
+  slug: string;
+  name: string;
+}
+
 interface StoreSidebarProps {
-  store: Store;
+  store: {
+    id: number;
+    name: string;
+    categories?: { slug: string }[];
+  } | null;
   stats: {
     totalOffers: number;
     verifiedCoupons: number;
     usedToday: number;
     bestDiscount: string;
   };
-  similarStores?: Store[];
+  similarStores?: { id: number | string; slug: string; name: string }[];
   websiteUrl: string;
 }
 
@@ -30,9 +46,9 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
 }
 
 export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: StoreSidebarProps) {
-  const logoUrl = getStoreLogo(store);
+  const logoUrl = store ? getStoreLogo(store) : '';
 
-  const categorySlug = store.categories?.[0]?.slug;
+  const categorySlug = store?.categories?.[0]?.slug;
 
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">
@@ -47,7 +63,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
             <div className="w-full bg-gray-50 rounded-lg flex items-center justify-center p-4 mb-4">
               <Image
                 src={logoUrl}
-                alt={store.name}
+                alt={store?.name || ''}
                 width={160}
                 height={80}
                 className="object-contain max-h-20"
@@ -62,12 +78,12 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
             rel="noopener noreferrer nofollow"
             className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg text-center mb-4 transition-colors"
           >
-            Shop Now at {store.name}
+            Shop Now at {store?.name}
           </a>
            
           <RatingWidget 
-            storeId={store.id} 
-            storeName={store.name}
+            storeId={store?.id ?? 0}
+            storeName={store?.name || ''}
             initialRating={5}
             initialVotes={3}
           />
@@ -101,7 +117,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
               ))}
             </ul>
             <Link
-              href={`/category/${store.categories?.[0]?.slug || ''}`}
+              href={`/category/${store?.categories?.[0]?.slug || ''}`}
               className="block mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 uppercase tracking-wide"
             >
               View All →

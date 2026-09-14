@@ -24,5 +24,32 @@ export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSid
     .replaceAll('{gclid}', encodeURIComponent(gclid))
     .replaceAll('{keyword}', encodeURIComponent(keyword));
 
-  return <StoreSidebar store={store} stats={stats} similarStores={similarStores} websiteUrl={websiteUrl} />;
+  // Project store to minimal serializable object for StoreSidebar
+  const sanitizedStore = store
+    ? {
+        id: store.id,
+        name: store.name,
+        website_url: store.website_url,
+        affiliate_url: store.affiliate_url,
+        categories: store.categories?.map((c) => ({ slug: c.slug })) || [],
+      }
+    : null;
+
+  // Project similarStores to minimal serializable objects
+  const sanitizedSimilarStores = similarStores
+    ? similarStores.map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        name: s.name,
+      }))
+    : [];
+
+  return (
+    <StoreSidebar
+      store={sanitizedStore}
+      stats={stats}
+      similarStores={sanitizedSimilarStores}
+      websiteUrl={websiteUrl}
+    />
+  );
 }

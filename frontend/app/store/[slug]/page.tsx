@@ -237,7 +237,20 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                   {verifiedCoupons.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{ ...coupon, store }}
+                      coupon={{
+                        ...coupon,
+                        store: coupon.store
+                          ? {
+                              id: coupon.store.id,
+                              slug: coupon.store.slug,
+                              name: coupon.store.name,
+                              website_url: coupon.store.website_url,
+                              affiliate_url: coupon.store.affiliate_url,
+                              currency: coupon.store.currency,
+                              country: coupon.store.country,
+                            }
+                          : null,
+                      }}
                     />
                   ))}
                 </div>
@@ -257,7 +270,20 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                   {regularCoupons.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{ ...coupon, store }}
+                      coupon={{
+                        ...coupon,
+                        store: coupon.store
+                          ? {
+                              id: coupon.store.id,
+                              slug: coupon.store.slug,
+                              name: coupon.store.name,
+                              website_url: coupon.store.website_url,
+                              affiliate_url: coupon.store.affiliate_url,
+                              currency: coupon.store.currency,
+                              country: coupon.store.country,
+                            }
+                          : null,
+                      }}
                     />
                   ))}
                 </div>
@@ -274,7 +300,20 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                   {expiredCoupons.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{ ...coupon, store }}
+                      coupon={{
+                        ...coupon,
+                        store: coupon.store
+                          ? {
+                              id: coupon.store.id,
+                              slug: coupon.store.slug,
+                              name: coupon.store.name,
+                              website_url: coupon.store.website_url,
+                              affiliate_url: coupon.store.affiliate_url,
+                              currency: coupon.store.currency,
+                              country: coupon.store.country,
+                            }
+                          : null,
+                      }}
                       isExpired
                     />
                   ))}
