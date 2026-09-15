@@ -78,16 +78,6 @@
       "relation": "manyToMany",
       "target": "api::category.category",
       "inversedBy": "coupons"
-    },
-    "seo_title": {
-      "type": "string"
-    },
-    "seo_description": {
-      "type": "text"
-    },
-    "noindex": {
-      "type": "boolean",
-      "default": false
     }
   }
 }

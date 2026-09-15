@@ -96,9 +96,6 @@ export interface Coupon {
   times_used: number;
   store?: Store;
   categories?: Category[];
-  seo_title?: string;
-  seo_description?: string;
-  noindex: boolean;
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
