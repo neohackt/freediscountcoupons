@@ -219,6 +219,9 @@ export function normalizeStoreData(data: Record<string, unknown>): StoreData {
     result.is_featured = val === 'true' || val === '1' || val === 'yes';
   }
 
+  if (data.seo_title) result.seo_title = String(data.seo_title).trim();
+  if (data.seo_description) result.seo_description = String(data.seo_description).trim();
+
   if (data.category_names) result.category_names = String(data.category_names).trim();
 
   return result;

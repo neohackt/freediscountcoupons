@@ -194,6 +194,9 @@ export async function processImport(context: ImportContext): Promise<{
   return { imported, skipped, errors: allErrors };
 }
 
+const isProvided = (v: unknown): boolean =>
+  v !== undefined && v !== null && String(v).trim() !== '';
+
 async function importStoreRow(
   strapi: StrapiType,
   data: Record<string, unknown>
@@ -207,6 +210,25 @@ async function importStoreRow(
   if (existingStore) {
     // Resolve category names to IDs for update
     const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
+    // Build update payload from ONLY non-empty supplied CSV fields.
+    // Blank cells preserve existing Strapi values.
+    const updateData: Record<string, unknown> = {};
+    if (isProvided(data.name)) updateData.name = normalized.name;
+    if (isProvided(data.slug)) updateData.slug = normalized.slug;
+    if (isProvided(data.description)) updateData.description = normalized.description;
+    if (isProvided(data.website_url)) updateData.website_url = normalized.website_url;
+    if (isProvided(data.affiliate_url)) updateData.affiliate_url = normalized.affiliate_url;
+    if (isProvided(data.country)) updateData.country = normalized.country;
+    if (isProvided(data.currency)) updateData.currency = normalized.currency;
+    if (isProvided(data.is_popular)) updateData.is_popular = normalized.is_popular;
+    if (isProvided(data.is_featured)) updateData.is_featured = normalized.is_featured;
+    if (isProvided(data.seo_title)) updateData.seo_title = normalized.seo_title;
+    if (isProvided(data.seo_description)) updateData.seo_description = normalized.seo_description;
+    if (Object.keys(updateData).length > 0) {
+      await strapi.entityService.update('api::store.store', existingStore.id, {
+        data: updateData,
+      });
+    }
     if (categoryIds.length > 0) {
       await strapi.entityService.update('api::store.store', existingStore.id, {
         data: { categories: categoryIds },
@@ -270,6 +292,8 @@ async function importStoreRow(
     currency: normalized.currency || null,
     is_popular: normalized.is_popular || false,
     is_featured: normalized.is_featured || false,
+    seo_title: normalized.seo_title || '',
+    seo_description: normalized.seo_description || '',
     categories: categoryIds,
   };
 

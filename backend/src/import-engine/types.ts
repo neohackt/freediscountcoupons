@@ -31,6 +31,8 @@ export interface StoreData {
   currency?: string;
   is_popular?: boolean;
   is_featured?: boolean;
+  seo_title?: string;
+  seo_description?: string;
   category_names?: string;
 }
 
