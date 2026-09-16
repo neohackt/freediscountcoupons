@@ -60,9 +60,9 @@ export async function Footer() {
               <Image
                 src="/images/FDC-01-light.png"
                 alt="FreeDiscountCoupons"
-                width={120}
-                height={32}
-                className="h-8 w-auto"
+                width={200}
+                height={40}
+                className="h-auto w-[200px]"
               />
             </Link>
             <p className="text-gray-400 text-sm">
