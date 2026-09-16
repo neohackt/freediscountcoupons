@@ -58,7 +58,7 @@ export async function Footer() {
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image
-                src="/images/FDC-01.png"
+                src="/images/FDC-01-light.png"
                 alt="FreeDiscountCoupons"
                 width={120}
                 height={32}
