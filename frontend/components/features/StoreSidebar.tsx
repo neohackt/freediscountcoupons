@@ -82,12 +82,14 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
             Shop Now at {store?.name}
           </a>
            
+          <div className="hidden lg:block">
           <RatingWidget 
             storeId={store?.id ?? 0}
             storeName={store?.name || ''}
             initialRating={5}
             initialVotes={3}
           />
+        </div>
         </div>
       </div>
 
