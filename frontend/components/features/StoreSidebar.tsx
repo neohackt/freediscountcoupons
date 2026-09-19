@@ -73,6 +73,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
             </div>
           </Link>
 
+          <div className="hidden lg:block">
           <a
             href={websiteUrl}
             target="_blank"
@@ -81,6 +82,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
           >
             Shop Now at {store?.name}
           </a>
+        </div>
            
           <div className="hidden lg:block">
           <RatingWidget 
