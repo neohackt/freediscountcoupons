@@ -94,11 +94,11 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
                   )}
                 </>
               )}
-              <h3 className={cn(
-                "text-base font-semibold truncate",
-                isExpired ? "text-gray-500" : "text-gray-900"
-              )}>
-                {coupon.title}
+<h3 className={cn(
+              "text-base font-semibold line-clamp-2 sm:line-clamp-none",
+              isExpired ? "text-gray-500" : "text-gray-900"
+            )}>
+              {coupon.title}
               </h3>
             </div>
           </div>
@@ -131,9 +131,8 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
             <h3 className={cn(
               "text-lg font-semibold mb-2",
               isExpired ? "text-gray-500" : "text-gray-900",
-              "line-clamp-2 sm:line-clamp-none"
+              "truncate"
             )}>
-              {coupon.title}
             </h3>
 
             {/* Description */}
