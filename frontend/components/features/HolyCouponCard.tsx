@@ -115,11 +115,11 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
                     Highest Discount
                   </span>
                 )}
-                {badgeType === 'likely' && (
-                  <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-600 mb-2">
-                    Likely to work
-                  </span>
-                )}
+{badgeType === 'likely' && (
+              <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-600 mb-2 -mt-1 sm:mt-0">
+                Likely to work
+              </span>
+            )}
                 {badgeType === 'default' && (
                   <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 mb-2">
                     Active
@@ -130,7 +130,8 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
             
             <h3 className={cn(
               "text-lg font-semibold mb-2",
-              isExpired ? "text-gray-500" : "text-gray-900"
+              isExpired ? "text-gray-500" : "text-gray-900",
+              "line-clamp-2 sm:line-clamp-none"
             )}>
               {coupon.title}
             </h3>
