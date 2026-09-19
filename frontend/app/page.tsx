@@ -43,10 +43,20 @@ async function getHomepageData() {
     const allCoupons = couponsData.data || [];
     const featuredCoupons = allCoupons.filter((c: any) => c.is_featured === true);
 
+    const seen = new Set<string>();
+    const uniqueFeaturedCoupons = featuredCoupons.filter((coupon: any) => {
+      const key = coupon.documentId || String(coupon.id);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+
     return {
       stores: popularStores,
       categories: categoriesData.data || [],
-      coupons: featuredCoupons,
+      coupons: uniqueFeaturedCoupons,
     };
   } catch (error) {
     console.error('Error fetching homepage data:', error);
