@@ -70,7 +70,7 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
                 )}
                 <span className="text-sm font-semibold text-gray-900">{discountText}</span>
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 truncate">
+              <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
                 {coupon.title}
               </h3>
             </div>
