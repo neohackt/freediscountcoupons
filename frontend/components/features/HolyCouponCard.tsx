@@ -133,6 +133,7 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
               isExpired ? "text-gray-500" : "text-gray-900",
               "truncate"
             )}>
+              {coupon.title}
             </h3>
 
             {/* Description */}
