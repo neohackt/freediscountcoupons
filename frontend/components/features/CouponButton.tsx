@@ -6,6 +6,8 @@ interface CouponButtonProps {
   code: string;
   onReveal?: () => void;
   onCopy?: () => void;
+  onNavigate?: (couponId: string) => void;
+  couponId?: string;
   isRevealed?: boolean;
   isCopied?: boolean;
 }
@@ -14,6 +16,8 @@ export function CouponButton({
   code,
   onReveal,
   onCopy,
+  onNavigate,
+  couponId,
   isRevealed: externalRevealed,
   isCopied: externalCopied,
 }: CouponButtonProps) {
@@ -29,8 +33,9 @@ export function CouponButton({
     setHasAnimated(true);
     navigator.clipboard.writeText(code);
     setInternalCopied(true);
-    onReveal?.();
     onCopy?.();
+    onReveal?.();
+    onNavigate?.(couponId ?? '');
     setTimeout(() => setInternalCopied(false), 2000);
   };
 
@@ -39,6 +44,7 @@ export function CouponButton({
     setInternalCopied(true);
     onCopy?.();
     onReveal?.();
+    onNavigate?.(couponId ?? '');
     setTimeout(() => setInternalCopied(false), 2000);
   };
 

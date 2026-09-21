@@ -6,6 +6,7 @@ import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebarUrlTracker } from '@/components/features/StoreSidebarUrlTracker';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
+import { StoreCouponModalTrigger } from '@/components/features/StoreCouponModalTrigger';
 import { BrandStats } from '@/components/features/BrandStats';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
 import { FaqAccordion } from '@/components/ui/FaqAccordion';
@@ -160,8 +161,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function StorePage({ 
+  params, 
+  searchParams 
+}: { 
+  params: Promise<{ slug: string }>; 
+  searchParams: Promise<{ coupon?: string }> 
+}) {
   const { slug } = await params;
+  const { coupon: couponId } = await searchParams;
   
   const store = await getStoreBySlug(slug);
   
@@ -179,6 +187,103 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
   const stats = calculateStats(activeCoupons, store);
   const faqs = normalizeFaqs(store.faqs);
+
+  // Find selected coupon from query parameter
+  let selectedCoupon: any = null;
+  if (couponId) {
+    selectedCoupon = allCoupons.find((c: any) => 
+      c.documentId === couponId || String(c.id) === couponId
+    ) || null;
+    
+    // Don't open modal for expired coupons
+    if (selectedCoupon?.is_expired) {
+      selectedCoupon = null;
+    }
+  }
+
+  // Sanitize coupon for client component
+  const sanitizedCoupon = selectedCoupon ? {
+    documentId: selectedCoupon.documentId,
+    id: selectedCoupon.id,
+    title: selectedCoupon.title,
+    description: selectedCoupon.description,
+    code: selectedCoupon.code,
+    discount_type: selectedCoupon.discount_type,
+    discount_value: selectedCoupon.discount_value,
+    currency: selectedCoupon.currency,
+    discount_text: selectedCoupon.discount_text,
+    affiliate_url: selectedCoupon.affiliate_url,
+    verified: selectedCoupon.verified,
+    verified_at: selectedCoupon.verified_at,
+    expires_at: selectedCoupon.expires_at,
+    is_featured: selectedCoupon.is_featured,
+    is_expired: selectedCoupon.is_expired,
+    success_rate: selectedCoupon.success_rate,
+    times_used: selectedCoupon.times_used,
+    store: selectedCoupon.store ? {
+      id: selectedCoupon.store.id,
+      documentId: selectedCoupon.store.documentId,
+      name: selectedCoupon.store.name,
+      slug: selectedCoupon.store.slug,
+      logo: selectedCoupon.store.logo,
+      description: selectedCoupon.store.description,
+      description_html: selectedCoupon.store.description_html,
+      faqs: selectedCoupon.store.faqs,
+      website_url: selectedCoupon.store.website_url,
+      affiliate_url: selectedCoupon.store.affiliate_url,
+      country: selectedCoupon.store.country,
+      currency: selectedCoupon.store.currency,
+      social_links: selectedCoupon.store.social_links,
+      is_popular: selectedCoupon.store.is_popular,
+      is_featured: selectedCoupon.store.is_featured,
+      categories: selectedCoupon.store.categories,
+      coupons: selectedCoupon.store.coupons,
+      aliases: selectedCoupon.store.aliases,
+      seo_title: selectedCoupon.store.seo_title,
+      seo_description: selectedCoupon.store.seo_description,
+      og_image: selectedCoupon.store.og_image,
+      noindex: selectedCoupon.store.noindex,
+      createdAt: selectedCoupon.store.createdAt,
+      updatedAt: selectedCoupon.store.updatedAt,
+      publishedAt: selectedCoupon.store.publishedAt,
+    } : undefined,
+    categories: selectedCoupon.categories,
+    createdAt: selectedCoupon.createdAt,
+    updatedAt: selectedCoupon.updatedAt,
+    publishedAt: selectedCoupon.publishedAt,
+  } : null;
+
+  // Sanitize store for client component
+  const sanitizedStore = {
+    id: store.id,
+    documentId: store.documentId,
+    name: store.name,
+    slug: store.slug,
+    logo: store.logo ? {
+      url: store.logo.url,
+      alternativeText: store.logo.alternativeText,
+    } : null,
+    description: store.description,
+    description_html: store.description_html,
+    faqs: store.faqs,
+    website_url: store.website_url,
+    affiliate_url: store.affiliate_url,
+    country: store.country,
+    currency: store.currency,
+    social_links: store.social_links,
+    is_popular: store.is_popular,
+    is_featured: store.is_featured,
+    categories: store.categories,
+    coupons: store.coupons,
+    aliases: store.aliases,
+    seo_title: store.seo_title,
+    seo_description: store.seo_description,
+    og_image: store.og_image,
+    noindex: store.noindex,
+    createdAt: store.createdAt,
+    updatedAt: store.updatedAt,
+    publishedAt: store.publishedAt,
+  };
 
   return (
     <>
@@ -382,6 +487,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             </div>
           </div>
         </div>
+        {sanitizedCoupon && (
+          <StoreCouponModalTrigger
+            coupon={sanitizedCoupon}
+            store={sanitizedStore}
+          />
+        )}
       </Container>
     </>
   );

@@ -34,6 +34,8 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
 
   const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;
 
+  const couponId = coupon.documentId || String(coupon.id);
+
   const discountText = formatDiscount(coupon, coupon.store);
   const badgeType = getBadgeType(coupon);
   const timeAgo = getTimeAgo(coupon.createdAt);
@@ -189,14 +191,21 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
               code={coupon.code}
               isRevealed={isRevealed}
               isCopied={isCopied}
+              couponId={couponId}
               onReveal={() => {
                 setIsRevealed(true);
-                if (couponLink) {
-                  window.open(couponLink, '_blank');
-                }
               }}
               onCopy={() => {
                 copyToClipboard(coupon.code);
+              }}
+              onNavigate={(couponId) => {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('coupon', couponId);
+                const storePageUrl = currentUrl.toString();
+                window.open(storePageUrl, '_blank', 'noopener,noreferrer');
+                if (couponLink) {
+                  window.location.href = couponLink;
+                }
               }}
             />
           </div>
