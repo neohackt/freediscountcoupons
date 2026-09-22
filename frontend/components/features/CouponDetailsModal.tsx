@@ -41,9 +41,6 @@ export function CouponDetailsModal({
 
   const storeLogoUrl = getStoreLogo(store);
   const expirationDate = formatExpiration(coupon.expires_at);
-  const storeDomain = store.website_url
-    ? new URL(store.website_url).hostname.replace('www.', '')
-    : store.name;
 
   const handleCopy = async () => {
     if (coupon.code) {
@@ -170,9 +167,6 @@ export function CouponDetailsModal({
 
               {coupon.code && (
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-2">
-                    Copy and paste this code at <span className="font-medium">{storeDomain}</span>
-                  </p>
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <code
                       className="font-mono text-base font-semibold text-gray-900 flex-1 break-all"
@@ -180,7 +174,7 @@ export function CouponDetailsModal({
                       {coupon.code}
                     </code>
                     <Button
-                      variant="secondary"
+                      variant="primary"
                       size="sm"
                       onClick={handleCopy}
                       disabled={copiedText === coupon.code}
