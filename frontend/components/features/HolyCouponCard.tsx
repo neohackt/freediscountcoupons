@@ -66,7 +66,7 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
             )}>
               <span className={cn(
                 "min-w-0 max-w-full text-base sm:text-2xl font-bold tracking-normal leading-tight text-center whitespace-normal break-words",
-                isExpired ? "text-gray-400" : "text-gray-900"
+                isExpired ? "text-gray-400" : "text-blue-600"
               )}>
                 {discountText}
               </span>
