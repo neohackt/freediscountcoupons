@@ -159,7 +159,7 @@ export function CouponDetailsModal({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500">{store.name}</p>
-                  <h2 id="modal-title" className="text-lg font-semibold text-gray-900 mt-1 truncate">
+                  <h2 id="modal-title" className="text-lg font-semibold text-gray-900 mt-1">
                     {coupon.title}
                   </h2>
                 </div>
