@@ -43,6 +43,43 @@ function buildWhere(filters: any): any {
   return where;
 }
 
+/**
+ * Normalize an optional `country` query parameter to an ISO 3166-1 alpha-2 code.
+ * - missing/blank/malformed → undefined (no country filtering)
+ * - otherwise trimmed + uppercased (e.g. "us" → "US", " US " → "US")
+ * Unknown-but-wellformed codes (e.g. "ZZ") are returned as-is: they match no
+ * country-specific coupons, so only GLOBAL coupons remain eligible.
+ */
+export function normalizeCountryParam(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const code = Array.isArray(value) ? String(value[0] ?? '') : String(value);
+  const normalized = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return undefined;
+  return normalized;
+}
+
+/**
+ * Additively apply country filtering to an existing coupon where clause.
+ * - no code → base where is returned unchanged
+ * - with code → GLOBAL coupons (empty countries relation) OR coupons whose
+ *   countries relation contains the requested code, AND-composed with the
+ *   existing filters so store/expiry/featured conditions still apply.
+ */
+export function withCountryFilter(baseWhere: any, countryCode: string | undefined): any {
+  if (!countryCode) return baseWhere;
+  return {
+    $and: [
+      baseWhere,
+      {
+        $or: [
+          { countries: { code: { $eq: countryCode } } },
+          { countries: { id: { $null: true } } },
+        ],
+      },
+    ],
+  };
+}
+
 function buildSort(sort: any): any {
   if (!sort || typeof sort !== 'object') return { createdAt: 'desc' };
   const result: any = {};
@@ -55,20 +92,24 @@ function buildSort(sort: any): any {
 export default factories.createCoreController('api::coupon.coupon', ({ strapi }) => ({
   async find(ctx) {
     const filters = buildWhere(ctx.query?.filters);
+    // Optional country-aware filtering (GLOBAL + requested country).
+    // Applied to the shared where clause so it composes with existing
+    // filters AND is respected by both findMany and count (pagination).
+    const where = withCountryFilter(filters, normalizeCountryParam(ctx.query?.country));
     const sort = buildSort(ctx.query?.sort);
     const pagination = ctx.query?.pagination as any || {};
     const page = parseInt(String(pagination.page), 10) || 1;
     const pageSize = parseInt(String(pagination.pageSize), 10) || 100;
 
     const entities = await strapi.db.query('api::coupon.coupon').findMany({
-      where: filters,
+      where,
       populate: ['store', 'store.logo', 'categories'],
       orderBy: sort,
       offset: (page - 1) * pageSize,
       limit: pageSize,
     });
 
-    const total = await strapi.db.query('api::coupon.coupon').count({ where: filters });
+    const total = await strapi.db.query('api::coupon.coupon').count({ where });
 
     return this.transformResponse(entities, {
       pagination: {
