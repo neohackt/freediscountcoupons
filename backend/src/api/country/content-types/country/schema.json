@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "countries",
+  "info": {
+    "singularName": "country",
+    "pluralName": "countries",
+    "displayName": "Country",
+    "description": "Coupon targeting countries (ISO 3166-1 alpha-2)"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "maxLength": 2,
+      "description": "ISO 3166-1 alpha-2 country code (e.g., US, IN, GB)"
+    },
+    "flag": {
+      "type": "string"
+    },
+    "coupons": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::coupon.coupon",
+      "inversedBy": "countries"
+    }
+  }
+}

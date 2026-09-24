@@ -78,6 +78,12 @@
       "relation": "manyToMany",
       "target": "api::category.category",
       "inversedBy": "coupons"
+    },
+    "countries": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::country.country",
+      "inversedBy": "coupons"
     }
   }
 }
