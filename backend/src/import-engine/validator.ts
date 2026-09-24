@@ -313,7 +313,39 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
 
   if (data.category_names) result.category_names = String(data.category_names).trim();
 
+  const parsedCountries = parseCountryCodes(data.country_codes);
+  if (parsedCountries === 'GLOBAL') {
+    result.country_codes = 'GLOBAL';
+  } else if (parsedCountries !== undefined) {
+    result.country_codes = parsedCountries.join(',');
+  }
+
   return result;
+}
+
+/**
+ * Normalize a country_codes CSV value.
+ * - undefined/null/blank → undefined (unspecified)
+ * - "GLOBAL" (case-insensitive, trimmed) → "GLOBAL"
+ * - otherwise → deduplicated uppercase ISO codes, order preserved
+ */
+export function parseCountryCodes(value: unknown): string[] | 'GLOBAL' | undefined {
+  if (value === undefined || value === null) return undefined;
+
+  const trimmed = String(value).trim();
+  if (trimmed === '') return undefined;
+  if (trimmed.toUpperCase() === 'GLOBAL') return 'GLOBAL';
+
+  const codes: string[] = [];
+  const seen = new Set<string>();
+  for (const part of trimmed.split(',')) {
+    const code = part.trim().toUpperCase();
+    if (code === '' || seen.has(code)) continue;
+    seen.add(code);
+    codes.push(code);
+  }
+
+  return codes.length === 0 ? undefined : codes;
 }
 
 export function normalizeCategoryData(data: Record<string, unknown>): CategoryData {

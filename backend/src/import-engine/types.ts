@@ -51,6 +51,7 @@ export interface CouponData {
   is_featured?: boolean;
   is_expired?: boolean;
   category_names?: string;
+  country_codes?: string;
 }
 
 export interface CategoryData {

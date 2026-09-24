@@ -46,6 +46,53 @@ async function resolveCategoryIds(strapi: StrapiType, categoryNames: string): Pr
   return categories.map(c => c.id);
 }
 
+export async function resolveCountryIds(strapi: StrapiType, codes: string[]): Promise<number[]> {
+  if (codes.length === 0) return [];
+
+  const countries = await strapi.db.query('api::country.country').findMany({
+    where: {
+      code: { $in: codes },
+      publishedAt: { $notNull: true },
+    },
+  });
+
+  const foundCodes = new Set(countries.map(c => String(c.code).toUpperCase()));
+  const missing = codes.filter(code => !foundCodes.has(code));
+
+  if (missing.length > 0) {
+    throw new Error(`Countries not found: ${missing.join(',')}`);
+  }
+
+  const idByCode = new Map(countries.map(c => [String(c.code).toUpperCase(), c.id]));
+  return codes.map(code => idByCode.get(code) as number);
+}
+
+export type CountryUpdateIntent =
+  | { action: 'omit' }
+  | { action: 'set'; codes: string[] };
+
+/**
+ * Decide how a normalized country_codes value affects the countries relation.
+ * - undefined (blank/missing) → preserve existing on update, GLOBAL on create
+ * - 'GLOBAL' → clear (empty relation)
+ * - codes → replace with resolved IDs
+ */
+export function getCountryUpdateIntent(
+  normalizedValue: string | undefined,
+  isNew: boolean
+): CountryUpdateIntent {
+  if (normalizedValue === undefined) {
+    return isNew ? { action: 'set', codes: [] } : { action: 'omit' };
+  }
+  if (normalizedValue === 'GLOBAL') {
+    return { action: 'set', codes: [] };
+  }
+  return {
+    action: 'set',
+    codes: String(normalizedValue).split(',').map(c => c.trim()).filter(Boolean),
+  };
+}
+
 export async function processImport(context: ImportContext): Promise<{
   imported: number;
   skipped: number;
@@ -132,6 +179,9 @@ export async function processImport(context: ImportContext): Promise<{
         message = `Invalid date format. Expected DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, or ISO timestamp. Received: "${row.data.expires_at}"`;
       } else if (errorMsg.includes('Store not found')) {
         field = 'store_slug';
+        message = errorMsg;
+      } else if (errorMsg.includes('Countries not found')) {
+        field = 'country_codes';
         message = errorMsg;
       } else if (errorMsg.includes('currency')) {
         field = 'currency';
@@ -352,11 +402,23 @@ async function importCouponRow(
     },
   });
 
+  // Blank/missing country_codes preserves the existing country relation on
+  // update, and means GLOBAL on create. 'GLOBAL' clears. Codes replace.
+  const countryIntent = getCountryUpdateIntent(normalized.country_codes, !existingCoupon);
+  const countryIds = countryIntent.action === 'set' && countryIntent.codes.length > 0
+    ? await resolveCountryIds(strapi, countryIntent.codes)
+    : [];
+
   if (existingCoupon) {
     // If category names provided, update the categories relation
     if (categoryIds.length > 0) {
       await strapi.entityService.update('api::coupon.coupon', existingCoupon.id, {
         data: { categories: categoryIds },
+      });
+    }
+    if (countryIntent.action === 'set') {
+      await strapi.entityService.update('api::coupon.coupon', existingCoupon.id, {
+        data: { countries: countryIds },
       });
     }
     return { id: existingCoupon.id, skipped: true, storeSlug, slug: existingCoupon.slug };
@@ -379,6 +441,7 @@ async function importCouponRow(
     times_used: 0,
     store: storeId,
     categories: categoryIds,
+    countries: countryIds,
   };
 
   // Only include expires_at if it has a value
