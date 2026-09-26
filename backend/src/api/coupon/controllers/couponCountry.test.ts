@@ -1,4 +1,4 @@
-import { normalizeCountryParam, withCountryFilter } from './coupon';
+import { normalizeCountryParam, withCountryFilter, COUPON_LIST_POPULATE } from './coupon';
 
 let failures = 0;
 
@@ -136,11 +136,35 @@ function testContract() {
   check(base, { publishedAt: { $notNull: true }, is_featured: true }, 'base where not mutated');
 }
 
+function testListPopulate() {
+  console.log('\n--- COUPON_LIST_POPULATE ---');
+
+  const entries = COUPON_LIST_POPULATE as unknown[];
+  const has = (value: unknown) => entries.some((e) => JSON.stringify(e) === JSON.stringify(value));
+
+  // Pre-existing relations retained.
+  check(has('store'), true, 'populate retains store');
+  check(has('store.logo'), true, 'populate retains store.logo');
+  check(has('categories'), true, 'populate retains categories');
+
+  // Countries exposed code-only: no name, flag, or back-relation.
+  const countries = entries.find(
+    (e) => typeof e === 'object' && e !== null && 'countries' in (e as Record<string, unknown>)
+  ) as { countries: { fields: string[] } } | undefined;
+  check(countries?.countries?.fields, ['code'], 'populate exposes countries.code only');
+
+  const serialized = JSON.stringify(entries);
+  check(serialized.includes('"name"'), false, 'no Country name field exposed');
+  check(serialized.includes('"flag"'), false, 'no Country flag field exposed');
+  check(serialized.includes('"coupons"'), false, 'no Country back-relation exposed');
+}
+
 async function main() {
   console.log('=== couponCountry Tests ===');
   testNormalize();
   testWhere();
   testContract();
+  testListPopulate();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }

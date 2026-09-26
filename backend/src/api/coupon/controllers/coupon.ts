@@ -89,6 +89,18 @@ function buildSort(sort: any): any {
   return result;
 }
 
+/**
+ * List populate for GET /api/coupons. Exposes only `countries.code`
+ * (classification data for country filtering) alongside the pre-existing
+ * relations. No other Country fields (name, flag, coupons) are exposed.
+ */
+export const COUPON_LIST_POPULATE = [
+  'store',
+  'store.logo',
+  'categories',
+  { countries: { fields: ['code'] } },
+];
+
 export default factories.createCoreController('api::coupon.coupon', ({ strapi }) => ({
   async find(ctx) {
     const filters = buildWhere(ctx.query?.filters);
@@ -103,7 +115,7 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
 
     const entities = await strapi.db.query('api::coupon.coupon').findMany({
       where,
-      populate: ['store', 'store.logo', 'categories'],
+      populate: COUPON_LIST_POPULATE,
       orderBy: sort,
       offset: (page - 1) * pageSize,
       limit: pageSize,
