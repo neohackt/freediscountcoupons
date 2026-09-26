@@ -6,6 +6,7 @@ import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { StoreSidebarUrlTracker } from '@/components/features/StoreSidebarUrlTracker';
 import { HolyCouponCard } from '@/components/features/HolyCouponCard';
+import { StoreCountryCoupons } from '@/components/features/StoreCountryCoupons';
 import { StoreCouponModalTrigger } from '@/components/features/StoreCouponModalTrigger';
 import { BrandStats } from '@/components/features/BrandStats';
 import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
@@ -64,6 +65,26 @@ async function getSimilarStores(slug: string): Promise<Store[]> {
     return (data.data || []) as Store[];
   } catch {
     return [];
+  }
+}
+
+async function getCountryMarkets(slug: string): Promise<{
+  countries: { code: string; name: string; flag: string; couponCount: number }[];
+  hasMultipleCountries: boolean;
+} | null> {
+  try {
+    const response = await fetch(
+      `${STRAPI_URL}/api/stores/slug/${slug}/country-markets`,
+      { next: { revalidate: 60 } }
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return (data.data || null) as {
+      countries: { code: string; name: string; flag: string; couponCount: number }[];
+      hasMultipleCountries: boolean;
+    } | null;
+  } catch {
+    return null;
   }
 }
 
@@ -187,9 +208,10 @@ export default async function StorePage({
     notFound();
   }
 
-  const [allCoupons, similarStores] = await Promise.all([
+  const [allCoupons, similarStores, marketsData] = await Promise.all([
     Promise.resolve(store.coupons || []),
     getSimilarStores(slug),
+    getCountryMarkets(slug),
   ]);
   const activeCoupons = allCoupons.filter((c: any) => !c.is_expired);
   const expiredCoupons = allCoupons.filter((c: any) => c.is_expired);
@@ -197,6 +219,36 @@ export default async function StorePage({
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
   const stats = calculateStats(activeCoupons, store);
   const faqs = normalizeFaqs(store.faqs);
+
+  // Country selector markets (Phase 6): only plain serializable fields cross
+  // the server/client boundary. The selector renders only for multi-market
+  // stores; everything else keeps the exact current rendering.
+  const sanitizedMarkets = (marketsData?.countries || []).map((m) => ({
+    code: m.code,
+    name: m.name,
+    flag: m.flag,
+    couponCount: m.couponCount,
+  }));
+  const showCountrySelector =
+    marketsData?.hasMultipleCountries === true && sanitizedMarkets.length >= 2;
+
+  const projectCardCoupon = (coupon: any) => ({
+    ...coupon,
+    store: coupon.store
+      ? {
+          id: coupon.store.id,
+          slug: coupon.store.slug,
+          name: coupon.store.name,
+          website_url: coupon.store.website_url,
+          affiliate_url: coupon.store.affiliate_url,
+          currency: coupon.store.currency,
+          country: coupon.store.country,
+        }
+      : null,
+  });
+  const cardVerified = verifiedCoupons.map(projectCardCoupon);
+  const cardRegular = regularCoupons.map(projectCardCoupon);
+  const cardExpired = expiredCoupons.map(projectCardCoupon);
 
   // Find selected coupon from query parameter
   let selectedCoupon: any = null;
@@ -335,6 +387,17 @@ export default async function StorePage({
             </div>
 
             <Suspense fallback={<div className="space-y-4"><div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" /><div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" /><div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" /></div>}>
+            {showCountrySelector ? (
+              <StoreCountryCoupons
+                storeSlug={slug}
+                storeName={store.name}
+                markets={sanitizedMarkets}
+                initialVerified={cardVerified}
+                initialRegular={cardRegular}
+                initialExpired={cardExpired}
+              />
+            ) : (
+              <>
             {verifiedCoupons.length > 0 && (
               <section className="mb-10">
                 <div className="flex items-center gap-3 mb-6">
@@ -348,25 +411,12 @@ export default async function StorePage({
                     Verified {store.name} Coupons
                   </h2>
                 </div>
-                
+
                 <div className="space-y-4">
-                  {verifiedCoupons.map((coupon: any) => (
+                  {cardVerified.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{
-                        ...coupon,
-                        store: coupon.store
-                          ? {
-                              id: coupon.store.id,
-                              slug: coupon.store.slug,
-                              name: coupon.store.name,
-                              website_url: coupon.store.website_url,
-                              affiliate_url: coupon.store.affiliate_url,
-                              currency: coupon.store.currency,
-                              country: coupon.store.country,
-                            }
-                          : null,
-                      }}
+                      coupon={coupon}
                     />
                   ))}
                 </div>
@@ -381,25 +431,12 @@ export default async function StorePage({
                   </h2>
                   <p className="text-gray-500">{regularCoupons.length} More Coupons</p>
                 </div>
-                
+
                 <div className="space-y-4">
-                  {regularCoupons.map((coupon: any) => (
+                  {cardRegular.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{
-                        ...coupon,
-                        store: coupon.store
-                          ? {
-                              id: coupon.store.id,
-                              slug: coupon.store.slug,
-                              name: coupon.store.name,
-                              website_url: coupon.store.website_url,
-                              affiliate_url: coupon.store.affiliate_url,
-                              currency: coupon.store.currency,
-                              country: coupon.store.country,
-                            }
-                          : null,
-                      }}
+                      coupon={coupon}
                     />
                   ))}
                 </div>
@@ -411,30 +448,19 @@ export default async function StorePage({
                 <h2 className="text-xl font-bold text-gray-900 mb-6">
                   Expired Coupons
                 </h2>
-                
+
                 <div className="space-y-4">
-                  {expiredCoupons.map((coupon: any) => (
+                  {cardExpired.map((coupon: any) => (
                     <HolyCouponCard
                       key={coupon.id}
-                      coupon={{
-                        ...coupon,
-                        store: coupon.store
-                          ? {
-                              id: coupon.store.id,
-                              slug: coupon.store.slug,
-                              name: coupon.store.name,
-                              website_url: coupon.store.website_url,
-                              affiliate_url: coupon.store.affiliate_url,
-                              currency: coupon.store.currency,
-                              country: coupon.store.country,
-                            }
-                          : null,
-                      }}
+                      coupon={coupon}
                       isExpired
                     />
                   ))}
                 </div>
               </section>
+            )}
+              </>
             )}
           </Suspense>
 
