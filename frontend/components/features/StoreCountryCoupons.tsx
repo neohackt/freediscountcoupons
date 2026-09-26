@@ -90,6 +90,27 @@ const SELECTOR_SELECTED_CLASSES = 'bg-blue-600 text-white border-blue-600';
 const SELECTOR_UNSELECTED_CLASSES =
   'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:text-blue-600';
 
+// Read the country selection from the URL hash (case-insensitive).
+// Returns the market code, or null for missing/invalid hashes (→ All).
+// Client-only: call exclusively from effects and event handlers.
+function parseHashCountry(markets: CountryMarket[]): string | null {
+  const raw = window.location.hash.replace(/^#/, '').trim().toUpperCase();
+  if (!raw) return null;
+  return markets.some((m) => m.code === raw) ? raw : null;
+}
+
+// Reflect a selection in the URL hash via pushState (one history entry per
+// user selection, pathname and query preserved, no reload, no preflight).
+// Skips the write when the hash already matches to avoid duplicate entries.
+function writeHash(code: string) {
+  const current = window.location.hash.replace(/^#/, '').toUpperCase();
+  const next = code === 'ALL' ? '' : code.toUpperCase();
+  if (current === next) return;
+  const url = new URL(window.location.href);
+  url.hash = next;
+  window.history.pushState(null, '', url.toString());
+}
+
 export function StoreCountryCoupons({
   storeSlug,
   storeName,
@@ -104,6 +125,9 @@ export function StoreCountryCoupons({
   const [error, setError] = useState<string | null>(null);
   const seqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Mirror of `selected` for use inside listeners (avoids stale closures).
+  // Every selection change flows through loadCountry below.
+  const selectedRef = useRef<string>('ALL');
 
   // Preserve the Store page's coupon ordering: the country-filtered set is a
   // subset of the initial list, so re-sort fetched coupons by their position
@@ -117,22 +141,29 @@ export function StoreCountryCoupons({
     return map;
   }, [initialVerified, initialRegular, initialExpired]);
 
-  const selectCountry = useCallback(
-    async (code: string) => {
+  // Core selection flow. `push` controls URL writes: user clicks push a
+  // history entry; hash-sync paths (mount, popstate, hashchange) never write,
+  // which makes feedback loops impossible (pushState fires no events).
+  const loadCountry = useCallback(
+    async (code: string, push: boolean) => {
       abortRef.current?.abort();
       if (code === 'ALL') {
+        selectedRef.current = 'ALL';
         setSelected('ALL');
         setFetched(null);
         setError(null);
         setLoading(false);
+        if (push) writeHash('ALL');
         return;
       }
       const seq = ++seqRef.current;
       const controller = new AbortController();
       abortRef.current = controller;
+      selectedRef.current = code;
       setSelected(code);
       setError(null);
       setLoading(true);
+      if (push) writeHash(code);
       try {
         const rows = await fetchCountryCoupons(storeSlug, code, controller.signal);
         if (seqRef.current !== seq) return;
@@ -152,6 +183,43 @@ export function StoreCountryCoupons({
     },
     [storeSlug, orderMap]
   );
+
+  const selectCountry = useCallback(
+    (code: string) => loadCountry(code, true),
+    [loadCountry]
+  );
+
+  // Reconcile an existing hash once after hydration. Server and first client
+  // render both stay ALL (no hydration mismatch); this effect performs zero
+  // history writes.
+  const marketsRef = useRef(markets);
+  marketsRef.current = markets;
+  useEffect(() => {
+    const code = parseHashCountry(marketsRef.current);
+    if (code && code !== selectedRef.current) {
+      void loadCountry(code, false);
+    }
+    // Mount-only reconciliation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Back/Forward (popstate) and outside hash edits (hashchange) update the
+  // selection without reloads and without writing history.
+  useEffect(() => {
+    const syncFromHash = () => {
+      const code = parseHashCountry(marketsRef.current);
+      const next = code ?? 'ALL';
+      if (next !== selectedRef.current) {
+        void loadCountry(next, false);
+      }
+    };
+    window.addEventListener('popstate', syncFromHash);
+    window.addEventListener('hashchange', syncFromHash);
+    return () => {
+      window.removeEventListener('popstate', syncFromHash);
+      window.removeEventListener('hashchange', syncFromHash);
+    };
+  }, [loadCountry]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
