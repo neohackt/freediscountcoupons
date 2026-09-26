@@ -24,5 +24,11 @@ export default {
       handler: 'store.findBySlug',
       config: { auth: false },
     },
+    {
+      method: 'GET',
+      path: '/stores/slug/:slug/country-markets',
+      handler: 'store.countryMarkets',
+      config: { auth: false },
+    },
   ],
 };

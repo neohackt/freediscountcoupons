@@ -32,6 +32,51 @@ async function revalidateStore(slug: string) {
   }
 }
 
+export interface CountryMarket {
+  code: string;
+  name: string;
+  flag: string;
+  couponCount: number;
+}
+
+/**
+ * Build the per-store country-market list from active coupons.
+ * - A market exists only for coupons with at least one Country relation
+ *   (global coupons with empty/null countries never create a market).
+ * - Each country appears once, sorted by name; couponCount counts active
+ *   targeted coupons for that country (a multi-country coupon counts once
+ *   for each applicable country).
+ * - hasMultipleCountries is true when 2+ markets exist.
+ * - The Store.country string field is never consulted.
+ */
+export function buildCountryMarkets(
+  coupons: Array<{
+    countries?: Array<{ code: string; name: string; flag: string }> | null;
+  }> | null | undefined
+): { countries: CountryMarket[]; hasMultipleCountries: boolean } {
+  const byCode = new Map<string, CountryMarket>();
+
+  for (const coupon of coupons ?? []) {
+    for (const country of coupon.countries ?? []) {
+      if (!country?.code) continue;
+      const existing = byCode.get(country.code);
+      if (existing) {
+        existing.couponCount++;
+      } else {
+        byCode.set(country.code, {
+          code: country.code,
+          name: country.name,
+          flag: country.flag,
+          couponCount: 1,
+        });
+      }
+    }
+  }
+
+  const countries = [...byCode.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return { countries, hasMultipleCountries: countries.length >= 2 };
+}
+
 export default factories.createCoreController('api::store.store', ({ strapi }) => ({
   async find(ctx) {
     const entities = await strapi.db.query('api::store.store').findMany({
@@ -94,6 +139,32 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
     });
 
     return this.transformResponse(unique);
+  },
+
+  async countryMarkets(ctx) {
+    const { slug } = ctx.params;
+
+    const store = await strapi.db.query('api::store.store').findOne({
+      where: { slug, publishedAt: { $notNull: true } },
+      select: ['id'],
+    });
+
+    if (!store) {
+      return ctx.notFound('Store not found');
+    }
+
+    // Active coupons mirror the Store-page display rules: published and not expired.
+    const coupons = await strapi.db.query('api::coupon.coupon').findMany({
+      where: {
+        store: store.id,
+        is_expired: false,
+        publishedAt: { $notNull: true },
+      },
+      select: ['id'],
+      populate: { countries: { fields: ['code', 'name', 'flag'] } },
+    });
+
+    return this.transformResponse(buildCountryMarkets(coupons));
   },
 
   async findBySlug(ctx) {
