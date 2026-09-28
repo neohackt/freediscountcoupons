@@ -90,16 +90,17 @@ function buildSort(sort: any): any {
 }
 
 /**
- * List populate for GET /api/coupons. Exposes only `countries.code`
- * (classification data for country filtering) alongside the pre-existing
- * relations. No other Country fields (name, flag, coupons) are exposed.
+ * List populate for GET /api/coupons. Object form is REQUIRED here: the
+ * db-layer populate parser calls `.split('.')` on every array entry, so a
+ * nested object inside an array crashes every request (TypeError). The
+ * db layer also only honors `select` (not entityService-style `fields`).
+ * Exposes only `countries.code` alongside the pre-existing relations.
  */
-export const COUPON_LIST_POPULATE = [
-  'store',
-  'store.logo',
-  'categories',
-  { countries: { fields: ['code'] } },
-];
+export const COUPON_LIST_POPULATE = {
+  store: { populate: ['logo'] },
+  categories: true,
+  countries: { select: ['code'] },
+};
 
 export default factories.createCoreController('api::coupon.coupon', ({ strapi }) => ({
   async find(ctx) {

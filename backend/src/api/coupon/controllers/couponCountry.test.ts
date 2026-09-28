@@ -139,24 +139,50 @@ function testContract() {
 function testListPopulate() {
   console.log('\n--- COUPON_LIST_POPULATE ---');
 
-  const entries = COUPON_LIST_POPULATE as unknown[];
-  const has = (value: unknown) => entries.some((e) => JSON.stringify(e) === JSON.stringify(value));
+  const populate = COUPON_LIST_POPULATE as unknown as Record<string, unknown>;
 
-  // Pre-existing relations retained.
-  check(has('store'), true, 'populate retains store');
-  check(has('store.logo'), true, 'populate retains store.logo');
-  check(has('categories'), true, 'populate retains categories');
+  // Must be object form: the db-layer parser calls `.split('.')` on every
+  // array entry, so a nested object inside an array crashes all requests.
+  check(Array.isArray(populate), false, 'populate is object form, not an array');
 
-  // Countries exposed code-only: no name, flag, or back-relation.
-  const countries = entries.find(
-    (e) => typeof e === 'object' && e !== null && 'countries' in (e as Record<string, unknown>)
-  ) as { countries: { fields: string[] } } | undefined;
-  check(countries?.countries?.fields, ['code'], 'populate exposes countries.code only');
+  // Pre-existing relations retained (object form equivalent of the old strings).
+  check(populate['store'], { populate: ['logo'] }, 'populate retains store → logo');
+  check(populate['categories'], true, 'populate retains categories');
 
-  const serialized = JSON.stringify(entries);
+  // Countries exposed code-only via the db-layer `select` key.
+  const countries = populate['countries'] as { select?: unknown } | undefined;
+  check(countries?.select, ['code'], 'populate exposes countries.code only');
+
+  const serialized = JSON.stringify(populate);
   check(serialized.includes('"name"'), false, 'no Country name field exposed');
   check(serialized.includes('"flag"'), false, 'no Country flag field exposed');
   check(serialized.includes('"coupons"'), false, 'no Country back-relation exposed');
+  check(serialized.includes('"fields"'), false, 'no entityService-style fields key (db layer drops it)');
+}
+
+function testPopulateCrashClass() {
+  console.log('\n--- populate crash-class regression guard ---');
+
+  // Walk the whole populate tree: no array may hold a non-string entry
+  // (db-layer processPopulate calls key.split('.') on each array item).
+  const violations: string[] = [];
+  const walk = (node: unknown, path: string) => {
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        if (typeof node[i] !== 'string') {
+          violations.push(`${path}[${i}]`);
+        } else {
+          walk(node[i], `${path}[${i}]`);
+        }
+      }
+    } else if (node !== null && typeof node === 'object') {
+      for (const [key, value] of Object.entries(node)) {
+        walk(value, path ? `${path}.${key}` : key);
+      }
+    }
+  };
+  walk(COUPON_LIST_POPULATE, '');
+  check(violations, [], 'no non-string entry inside any populate array');
 }
 
 async function main() {
@@ -165,6 +191,7 @@ async function main() {
   testWhere();
   testContract();
   testListPopulate();
+  testPopulateCrashClass();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }
