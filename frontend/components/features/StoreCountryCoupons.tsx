@@ -16,6 +16,9 @@ interface StoreCountryCouponsProps {
   storeSlug: string;
   storeName: string;
   markets: CountryMarket[];
+  // Phase 8: server-derived CF-IPCountry code, already validated against
+  // markets (null = absent/invalid). Lower priority than the URL hash.
+  detectedCountry?: string | null;
   initialVerified: Coupon[];
   initialRegular: Coupon[];
   initialExpired: Coupon[];
@@ -127,10 +130,20 @@ function writeHash(code: string) {
   window.history.pushState(null, '', url.toString());
 }
 
+// Reflect a mount-time auto-selection in the URL hash via replaceState:
+// the URL mirrors the state but no history entry is created, so Back still
+// exits the page instead of landing on the same page without a hash.
+function writeHashReplace(code: string) {
+  const url = new URL(window.location.href);
+  url.hash = code === 'ALL' ? '' : code.toUpperCase();
+  window.history.replaceState(null, '', url.toString());
+}
+
 export function StoreCountryCoupons({
   storeSlug,
   storeName,
   markets,
+  detectedCountry = null,
   initialVerified,
   initialRegular,
   initialExpired,
@@ -157,11 +170,12 @@ export function StoreCountryCoupons({
     return map;
   }, [initialVerified, initialRegular, initialExpired]);
 
-  // Core selection flow. `push` controls URL writes: user clicks push a
-  // history entry; hash-sync paths (mount, popstate, hashchange) never write,
-  // which makes feedback loops impossible (pushState fires no events).
+  // Core selection flow. `hash` controls URL writes: user clicks push a
+  // history entry; mount auto-selection replaces (no new entry); hash-sync
+  // paths (popstate, hashchange) never write, which makes feedback loops
+  // impossible (pushState fires no events).
   const loadCountry = useCallback(
-    async (code: string, push: boolean) => {
+    async (code: string, hash: 'push' | 'replace' | 'silent') => {
       abortRef.current?.abort();
       if (code === 'ALL') {
         selectedRef.current = 'ALL';
@@ -169,7 +183,8 @@ export function StoreCountryCoupons({
         setFetched(null);
         setError(null);
         setLoading(false);
-        if (push) writeHash('ALL');
+        if (hash === 'push') writeHash('ALL');
+        else if (hash === 'replace') writeHashReplace('ALL');
         return;
       }
       const seq = ++seqRef.current;
@@ -179,7 +194,8 @@ export function StoreCountryCoupons({
       setSelected(code);
       setError(null);
       setLoading(true);
-      if (push) writeHash(code);
+      if (hash === 'push') writeHash(code);
+      else if (hash === 'replace') writeHashReplace(code);
       try {
         const rows = await fetchCountryCoupons(storeSlug, code, controller.signal);
         if (seqRef.current !== seq) return;
@@ -204,19 +220,36 @@ export function StoreCountryCoupons({
   );
 
   const selectCountry = useCallback(
-    (code: string) => loadCountry(code, true),
+    (code: string) => loadCountry(code, 'push'),
     [loadCountry]
   );
 
-  // Reconcile an existing hash once after hydration. Server and first client
-  // render both stay ALL (no hydration mismatch); this effect performs zero
-  // history writes.
+  // Initial-selection priority after hydration (server and first client render
+  // both stay ALL — no hydration mismatch):
+  //   1. explicit URL hash (unchanged Phase 7 behavior, no history write),
+  //   2. server-detected CF-IPCountry (hash written via replaceState: no new
+  //      history entry, so Back still exits the page),
+  //   3. All (default).
+  // A priority-2 slot for a future saved preference is intentionally left open.
+  const detectedRef = useRef<string | null>(detectedCountry ?? null);
+  detectedRef.current = detectedCountry ?? null;
   const marketsRef = useRef(markets);
   marketsRef.current = markets;
   useEffect(() => {
-    const code = parseHashCountry(marketsRef.current);
-    if (code && code !== selectedRef.current) {
-      void loadCountry(code, false);
+    const hashCode = parseHashCountry(marketsRef.current);
+    if (hashCode) {
+      if (hashCode !== selectedRef.current) {
+        void loadCountry(hashCode, 'silent');
+      }
+      return;
+    }
+    const detected = detectedRef.current;
+    if (
+      detected &&
+      detected !== selectedRef.current &&
+      marketsRef.current.some((m) => m.code === detected)
+    ) {
+      void loadCountry(detected, 'replace');
     }
     // Mount-only reconciliation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,7 +262,7 @@ export function StoreCountryCoupons({
       const code = parseHashCountry(marketsRef.current);
       const next = code ?? 'ALL';
       if (next !== selectedRef.current) {
-        void loadCountry(next, false);
+        void loadCountry(next, 'silent');
       }
     };
     window.addEventListener('popstate', syncFromHash);

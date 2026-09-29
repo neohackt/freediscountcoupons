@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -232,6 +233,19 @@ export default async function StorePage({
   const showCountrySelector =
     marketsData?.hasMultipleCountries === true && sanitizedMarkets.length >= 2;
 
+  // Phase 8: Cloudflare country detection. Read server-side from the
+  // CF-IPCountry request header; normalize to uppercase ISO alpha-2 and keep
+  // only codes that are actual markets for this store. Anything else
+  // (missing/invalid/non-market) falls back to null → All. Plain string,
+  // safe to cross the server/client boundary. Never overrides the URL hash
+  // (hash priority is resolved client-side after hydration).
+  const cfRaw = (await headers()).get('cf-ipcountry');
+  const cfCode = cfRaw ? cfRaw.trim().toUpperCase() : '';
+  const detectedCountry =
+    /^[A-Z]{2}$/.test(cfCode) && sanitizedMarkets.some((m) => m.code === cfCode)
+      ? cfCode
+      : null;
+
   const projectCardCoupon = (coupon: any) => ({
     ...coupon,
     store: coupon.store
@@ -392,6 +406,7 @@ export default async function StorePage({
                 storeSlug={slug}
                 storeName={store.name}
                 markets={sanitizedMarkets}
+                detectedCountry={detectedCountry}
                 initialVerified={cardVerified}
                 initialRegular={cardRegular}
                 initialExpired={cardExpired}
