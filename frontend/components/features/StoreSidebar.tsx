@@ -61,7 +61,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
             rel="noopener noreferrer nofollow"
             className="block"
           >
-            <div className="w-full bg-gray-50 rounded-lg flex items-center justify-center p-4 mb-4">
+            <div className="w-full bg-gray-50 rounded-lg hidden lg:flex items-center justify-center p-4 mb-4">
               <Image
                 src={logoUrl}
                 alt={store?.name || ''}

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
@@ -14,7 +15,7 @@ import { StoreInfoGrid } from '@/components/ui/StoreInfoGrid';
 import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
-import { SITE_URL, STRAPI_URL, BRAND_CONFIG } from '@/lib/strapi';
+import { SITE_URL, STRAPI_URL, BRAND_CONFIG, getStoreLogo } from '@/lib/strapi';
 import { formatCurrency, resolveCouponCurrency } from '@/lib/formatters/currency';
 import type { Store, StoreFaq, StoreFaqJsonLd } from '@/types';
 
@@ -220,6 +221,7 @@ export default async function StorePage({
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
   const stats = calculateStats(activeCoupons, store);
   const faqs = normalizeFaqs(store.faqs);
+  const logoUrl = getStoreLogo(store);
 
   // Country selector markets (Phase 6): only plain serializable fields cross
   // the server/client boundary. The selector renders only for multi-market
@@ -391,9 +393,20 @@ export default async function StorePage({
 
           <div className="flex-1 min-w-0">
             <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                {store.name} Coupon Codes for <span className="text-blue-600">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-              </h1>
+              <div className="flex items-center gap-4 lg:block">
+                <figure className="relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center lg:hidden">
+                  <Image
+                    src={logoUrl}
+                    alt={store.name}
+                    fill
+                    className="object-contain p-1"
+                    unoptimized
+                  />
+                </figure>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 min-w-0 flex-1">
+                  {store.name} Coupon Codes for <span className="text-blue-600">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                </h1>
+              </div>
 
               <p className="text-lg font-semibold text-gray-900">
                 {allCoupons.length} Available Coupons
