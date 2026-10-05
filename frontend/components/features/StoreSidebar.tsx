@@ -53,7 +53,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
 
   return (
     <aside className="w-full lg:w-80 flex-shrink-0">
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6 hidden lg:block">
         <div className="p-5">
           <Link
             href={websiteUrl}
