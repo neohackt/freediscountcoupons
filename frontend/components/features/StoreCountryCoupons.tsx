@@ -230,7 +230,7 @@ export function StoreCountryCoupons({
   //   2. server-detected CF-IPCountry (hash written via replaceState: no new
   //      history entry, so Back still exits the page),
   //   3. All (default).
-  // A priority-2 slot for a future saved preference is intentionally left open.
+  // Priority is final: hash → CF-IPCountry → All.
   const detectedRef = useRef<string | null>(detectedCountry ?? null);
   detectedRef.current = detectedCountry ?? null;
   const marketsRef = useRef(markets);
