@@ -384,9 +384,9 @@ export default async function StorePage({
           />
         </Container>
       </div>
+      <Container className="py-4 lg:py-8">
 
-      <Container className="py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-8">
           <Suspense fallback={<div className="w-full lg:w-80 flex-shrink-0" />}>
             <StoreSidebarUrlTracker store={store as any} stats={stats} similarStores={similarStores} />
           </Suspense>
