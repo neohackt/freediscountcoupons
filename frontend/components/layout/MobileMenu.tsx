@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import type { EventNavItem } from '@/types/event';
 
 const navigation = [
   { name: 'Stores', href: '/stores' },
@@ -9,8 +10,13 @@ const navigation = [
   { name: 'Blog', href: '/blog' },
 ];
 
-export function MobileMenu() {
+interface MobileMenuProps {
+  events?: EventNavItem[];
+}
+
+export function MobileMenu({ events = [] }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
 
   return (
     <div className="md:hidden">
@@ -43,6 +49,41 @@ export function MobileMenu() {
                 {item.name}
               </Link>
             ))}
+            {events.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setEventsOpen((prev) => !prev)}
+                  aria-expanded={eventsOpen}
+                  className="flex w-full items-center justify-between px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                >
+                  Events
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${eventsOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {eventsOpen && (
+                  <div className="pl-4 space-y-1 mt-1">
+                    {events.map((event) => (
+                      <Link
+                        key={event.slug}
+                        href={`/events/${event.slug}`}
+                        onClick={() => setIsOpen(false)}
+                        className="block px-4 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                      >
+                        {event.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
         </div>
       )}

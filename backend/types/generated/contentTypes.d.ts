@@ -596,6 +596,43 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCountryCountry extends Struct.CollectionTypeSchema {
+  collectionName: 'countries';
+  info: {
+    description: 'Coupon targeting countries (ISO 3166-1 alpha-2)';
+    displayName: 'Country';
+    pluralName: 'countries';
+    singularName: 'country';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    code: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2;
+      }>;
+    coupons: Schema.Attribute.Relation<'manyToMany', 'api::coupon.coupon'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    flag: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::country.country'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
   collectionName: 'coupons';
   info: {
@@ -614,6 +651,7 @@ export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
       'api::category.category'
     >;
     code: Schema.Attribute.String & Schema.Attribute.Required;
+    countries: Schema.Attribute.Relation<'manyToMany', 'api::country.country'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -637,10 +675,7 @@ export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
       'api::coupon.coupon'
     > &
       Schema.Attribute.Private;
-    noindex: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     publishedAt: Schema.Attribute.DateTime;
-    seo_description: Schema.Attribute.Text;
-    seo_title: Schema.Attribute.String;
     store: Schema.Attribute.Relation<'manyToOne', 'api::store.store'>;
     success_rate: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     times_used: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
@@ -650,6 +685,42 @@ export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     verified: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     verified_at: Schema.Attribute.DateTime;
+  };
+}
+
+export interface ApiEventEvent extends Struct.CollectionTypeSchema {
+  collectionName: 'events';
+  info: {
+    description: 'Seasonal event landing pages (Halloween, Black Friday, \u2026) linking curated Stores';
+    displayName: 'Event';
+    pluralName: 'events';
+    singularName: 'event';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    content: Schema.Attribute.RichText;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    heroImage: Schema.Attribute.Media<'images'>;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::event.event'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    ogImage: Schema.Attribute.Media<'images'>;
+    publishedAt: Schema.Attribute.DateTime;
+    seoDescription: Schema.Attribute.Text;
+    seoTitle: Schema.Attribute.String;
+    shortDescription: Schema.Attribute.Text;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    sortOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    stores: Schema.Attribute.Relation<'manyToMany', 'api::store.store'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1269,7 +1340,9 @@ declare module '@strapi/strapi' {
       'api::blog-category.blog-category': ApiBlogCategoryBlogCategory;
       'api::blog-post.blog-post': ApiBlogPostBlogPost;
       'api::category.category': ApiCategoryCategory;
+      'api::country.country': ApiCountryCountry;
       'api::coupon.coupon': ApiCouponCoupon;
+      'api::event.event': ApiEventEvent;
       'api::import-job.import-job': ApiImportJobImportJob;
       'api::store.store': ApiStoreStore;
       'plugin::content-releases.release': PluginContentReleasesRelease;

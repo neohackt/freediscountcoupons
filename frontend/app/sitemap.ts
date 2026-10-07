@@ -16,6 +16,11 @@ interface StrapiBlogPost {
   updatedAt: string;
 }
 
+interface StrapiEvent {
+  slug: string;
+  updatedAt: string;
+}
+
 async function getStores(): Promise<StrapiStore[]> {
   try {
     const response = await fetch(
@@ -64,8 +69,25 @@ async function getBlogPosts(): Promise<StrapiBlogPost[]> {
   }
 }
 
+async function getEvents(): Promise<StrapiEvent[]> {
+  try {
+    const response = await fetch(
+      `${STRAPI_URL}/api/events/active`,
+      { next: { revalidate: 3600 } }
+    );
+    const data = await response.json();
+    // /api/events/active selects only name/slug/sortOrder by design.
+    return (data.data || []).map((e: { slug: string }) => ({
+      slug: e.slug,
+      updatedAt: new Date().toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [stores, categories, blogPosts] = await Promise.all([getStores(), getCategories(), getBlogPosts()]);
+  const [stores, categories, blogPosts, events] = await Promise.all([getStores(), getCategories(), getBlogPosts(), getEvents()]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -115,5 +137,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...storePages, ...categoryPages, ...blogPages];
+  const eventPages: MetadataRoute.Sitemap = events.map((event) => ({
+    url: `${SITE_URL}/events/${event.slug}`,
+    lastModified: new Date(event.updatedAt),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...storePages, ...categoryPages, ...blogPages, ...eventPages];
 }

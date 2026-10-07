@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileMenu } from './MobileMenu';
+import { EventsDropdown } from '@/components/features/EventsDropdown';
+import { STRAPI_URL } from '@/lib/strapi';
+import type { EventNavItem } from '@/types/event';
 
 const navigation = [
   { name: 'Stores', href: '/stores' },
@@ -8,7 +11,22 @@ const navigation = [
   { name: 'Blog', href: '/blog' },
 ];
 
-export function Header() {
+async function getActiveEvents(): Promise<EventNavItem[]> {
+  try {
+    const response = await fetch(`${STRAPI_URL}/api/events/active`, {
+      next: { revalidate: 60 },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.data || []) as EventNavItem[];
+  } catch {
+    return [];
+  }
+}
+
+export async function Header() {
+  const events = await getActiveEvents();
+
   return (
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,6 +52,7 @@ export function Header() {
                   {item.name}
                 </Link>
               ))}
+              <EventsDropdown events={events} />
             </nav>
           </div>
 
@@ -47,7 +66,7 @@ export function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </Link>
-            <MobileMenu />
+            <MobileMenu events={events} />
           </div>
         </div>
       </div>

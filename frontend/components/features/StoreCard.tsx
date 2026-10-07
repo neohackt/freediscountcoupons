@@ -19,6 +19,20 @@ function getGoogleFaviconUrl(websiteUrl?: string, size = 128): string {
   return `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE&size=${size}&url=http://${domain}`;
 }
 
+export function StoreLogoFigure({ name, logoUrl }: { name: string; logoUrl: string }) {
+  return (
+    <figure className="relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+      <Image
+        src={logoUrl}
+        alt={name}
+        fill
+        className="object-contain p-1"
+        unoptimized
+      />
+    </figure>
+  );
+}
+
 export function StoreCard({ store }: StoreCardProps) {
   const storeLogoUrl = getStoreLogo(store);
   const couponCount = store.coupons?.length ?? 0;
@@ -29,15 +43,7 @@ export function StoreCard({ store }: StoreCardProps) {
       className="group block bg-white rounded-xl border border-gray-100 p-4 transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200 hover:-translate-y-0.5"
     >
       <article className="flex items-center gap-4">
-        <figure className="relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-          <Image
-            src={storeLogoUrl}
-            alt={store.name}
-            fill
-            className="object-contain p-1"
-            unoptimized
-          />
-        </figure>
+        <StoreLogoFigure name={store.name} logoUrl={storeLogoUrl} />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
             {store.name}
