@@ -121,7 +121,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         />
 
         {event.heroImage?.url && (
-          <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden bg-gray-100 mb-8">
+          <div className="relative w-full aspect-[21/9] lg:max-h-[360px] rounded-xl overflow-hidden bg-gray-100 mb-8">
             <Image
               src={getMediaUrl(event.heroImage.url)}
               alt={event.heroImage.alternativeText || event.name}
