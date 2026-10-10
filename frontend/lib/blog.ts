@@ -1,5 +1,5 @@
 import { STRAPI_URL } from '@/lib/strapi';
-import type { BlogPost, BlogCategory, BlogStrapiResponse, BlogListParams, RelatedPost } from '@/types/blog';
+import type { BlogPost, BlogCategory, BlogStrapiResponse, BlogListParams, RelatedPost, AdjacentPost } from '@/types/blog';
 
 async function fetchStrapi<T>(path: string, params?: Record<string, string>, revalidate = 300): Promise<T | null> {
   try {
@@ -107,6 +107,49 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   };
   const data = await fetchStrapi<BlogStrapiResponse<BlogPost[]>>('/api/blog-posts', params, 3600);
   return data?.data?.[0] || null;
+}
+
+export async function getAdjacentPosts(
+  publishedAt: string,
+  id: number
+): Promise<{ prev: AdjacentPost | null; next: AdjacentPost | null }> {
+  const base: Record<string, string> = {
+    'filters[publishedAt][$notNull]': 'true',
+    'fields[0]': 'title',
+    'fields[1]': 'slug',
+  };
+
+  // Previous (older): publishedAt < X OR (publishedAt = X AND id < ID),
+  // ordered newest-first so the single result is the nearest older post.
+  const prevParams: Record<string, string> = {
+    ...base,
+    'filters[$or][0][publishedAt][$lt]': publishedAt,
+    'filters[$or][1][publishedAt][$eq]': publishedAt,
+    'filters[$or][1][id][$lt]': String(id),
+    sort: 'publishedAt:desc,id:desc',
+    'pagination[pageSize]': '1',
+  };
+
+  // Next (newer): publishedAt > X OR (publishedAt = X AND id > ID),
+  // ordered oldest-first so the single result is the nearest newer post.
+  const nextParams: Record<string, string> = {
+    ...base,
+    'filters[$or][0][publishedAt][$gt]': publishedAt,
+    'filters[$or][1][publishedAt][$eq]': publishedAt,
+    'filters[$or][1][id][$gt]': String(id),
+    sort: 'publishedAt:asc,id:asc',
+    'pagination[pageSize]': '1',
+  };
+
+  const [prevRes, nextRes] = await Promise.all([
+    fetchStrapi<BlogStrapiResponse<AdjacentPost[]>>('/api/blog-posts', prevParams),
+    fetchStrapi<BlogStrapiResponse<AdjacentPost[]>>('/api/blog-posts', nextParams),
+  ]);
+
+  return {
+    prev: prevRes?.data?.[0] ?? null,
+    next: nextRes?.data?.[0] ?? null,
+  };
 }
 
 export async function getRelatedPosts(postId: number, categoryId?: number | null, limit = 6): Promise<RelatedPost[]> {

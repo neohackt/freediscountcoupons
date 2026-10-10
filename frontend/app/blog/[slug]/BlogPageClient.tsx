@@ -9,10 +9,11 @@ import BlogContent, { extractHeadings } from '@/components/blog/BlogContent';
 import AuthorBox from '@/components/blog/AuthorBox';
 import FAQSection from '@/components/blog/FAQSection';
 import RelatedPosts from '@/components/blog/RelatedPosts';
+import PrevNextNav from '@/components/blog/PrevNextNav';
 import RelatedStores from '@/components/blog/RelatedStores';
 import CouponWidget from '@/components/blog/CouponWidget';
 import SocialShare from '@/components/blog/SocialShare';
-import type { BlogPost, RelatedPost, FAQItem, SiteConfig } from '@/types/blog';
+import type { BlogPost, RelatedPost, AdjacentPost, FAQItem, SiteConfig } from '@/types/blog';
 
 const NewsletterWidget = dynamic(() => import('@/components/blog/NewsletterWidget'), { ssr: false });
 const CommentsSection = dynamic(() => import('@/components/blog/CommentsSection'), { ssr: false });
@@ -23,9 +24,11 @@ interface BlogPostClientProps {
   canonicalUrl: string;
   siteConfig: SiteConfig;
   faqItems: FAQItem[];
+  prevPost: AdjacentPost | null;
+  nextPost: AdjacentPost | null;
 }
 
-export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteConfig, faqItems }: BlogPostClientProps) {
+export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteConfig, faqItems, prevPost, nextPost }: BlogPostClientProps) {
   const headings = extractHeadings(post.content);
   const imageUrl = post.featuredImage?.url || post.og_image?.url;
   const categoryName = post.category?.name;
@@ -161,6 +164,8 @@ export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteC
                 <SocialShare url={canonicalUrl} title={post.title} />
 
                 {post.author && <div className="mt-8"><AuthorBox author={post.author} /></div>}
+
+                <PrevNextNav prev={prevPost} next={nextPost} />
 
                 <FAQSection items={faqItems} />
 

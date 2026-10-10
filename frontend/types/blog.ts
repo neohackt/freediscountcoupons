@@ -56,6 +56,11 @@ export interface RelatedStore {
   activeCouponCount?: number;
 }
 
+export interface AdjacentPost {
+  title: string;
+  slug: string;
+}
+
 export interface RelatedPost {
   id: number;
   documentId: string;

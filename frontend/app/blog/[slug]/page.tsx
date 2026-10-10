@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getPostBySlug, getRelatedPosts } from '@/lib/blog';
+import { getPostBySlug, getRelatedPosts, getAdjacentPosts } from '@/lib/blog';
 import { SITE_URL } from '@/lib/constants';
 import BlogPageClient from './BlogPageClient';
 
@@ -50,7 +50,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) notFound();
 
   const categoryId = post.category?.id || null;
-  const relatedPosts = await getRelatedPosts(post.id, categoryId, 6);
+  const [relatedPosts, adjacent] = await Promise.all([
+    getRelatedPosts(post.id, categoryId, 6),
+    getAdjacentPosts(post.publishedAt, post.id),
+  ]);
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
   const siteConfig = { organizationName: 'FreeDiscountCoupons', organizationLogo: `${SITE_URL}/logo.png`, siteUrl: SITE_URL };
 
@@ -63,6 +66,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       canonicalUrl={canonicalUrl}
       siteConfig={siteConfig}
       faqItems={faqItems}
+      prevPost={adjacent.prev}
+      nextPost={adjacent.next}
     />
   );
 }
