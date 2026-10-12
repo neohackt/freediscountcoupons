@@ -43,8 +43,10 @@ function getCookie(cookieName: string): string {
 }
 
 export function getUrlParams(searchParams: URLSearchParams): { gclid: string; keyword: string } {
+  // Unified click ID: Google `gclid` takes precedence; Microsoft `msclkid`
+  // fills the same field (and downstream `aff_sub1` slot) when `gclid` is absent.
   return {
-    gclid: searchParams.get('gclid') || '',
+    gclid: searchParams.get('gclid') || searchParams.get('msclkid') || '',
     keyword: searchParams.get('keyword') || '',
   };
 }
