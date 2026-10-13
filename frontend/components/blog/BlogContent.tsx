@@ -18,6 +18,49 @@ function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+/**
+ * Remove a full-document shell from CMS HTML so embedded document tags can
+ * never close the host article/main elements when injected via
+ * dangerouslySetInnerHTML. Ordinary fragments pass through unchanged.
+ */
+export function sanitizeArticleHtml(html: string): string {
+  if (!html || typeof html !== 'string') return html;
+  let out = html;
+  // 1. Doctype can never be article content.
+  out = out.replace(/<!DOCTYPE[^>]*>/gi, '');
+  // 2. A closed <head> block is metadata, not article content.
+  out = out.replace(/<head[\s>][\s\S]*?<\/head\s*>/gi, '');
+  // 3. Unclosed <head> with a later <body>: drop the head prefix through the
+  //    <body> opener so no head metadata renders in the article.
+  const headOpen = out.search(/<head[\s>]/i);
+  if (headOpen !== -1 && !/<\/head\s*>/i.test(out)) {
+    const bodyOpen = /<body(?:\s[^>]*)?>/i.exec(out);
+    if (bodyOpen && bodyOpen.index > headOpen) {
+      out = out.slice(bodyOpen.index + bodyOpen[0].length);
+    }
+  }
+  // 4. Remaining shell tags (unclosed head opener, html/body tags).
+  out = out.replace(/<\/?(?:html|head|body)(?:\s[^>]*)?>/gi, '');
+  // 5. Trailing orphan closers only: strip while closers exceed openers,
+  //    verified per tag, so balanced nested markup is never touched.
+  out = stripTrailingOrphans(stripTrailingOrphans(out, 'article'), 'main');
+  return out;
+}
+
+function stripTrailingOrphans(html: string, tag: 'article' | 'main'): string {
+  let out = html;
+  for (;;) {
+    const opens = (out.match(new RegExp(`<${tag}[\\s>]`, 'gi')) || []).length;
+    const closes = (out.match(new RegExp(`</${tag}\\s*>`, 'gi')) || []).length;
+    if (closes <= opens) break;
+    const idx = out.toLowerCase().lastIndexOf(`</${tag}`);
+    const end = out.indexOf('>', idx);
+    if (idx === -1 || end === -1) break;
+    out = out.slice(0, idx) + out.slice(end + 1);
+  }
+  return out;
+}
+
 function renderInline(children: ContentBlock[] | undefined): React.ReactNode {
   if (!children) return null;
   return children.map((child, i) => {
@@ -122,7 +165,7 @@ export default function BlogContent({ content }: BlogContentProps) {
     return (
       <div
         className="prose prose-gray max-w-none"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(content) }}
       />
     );
   }
