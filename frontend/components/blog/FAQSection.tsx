@@ -10,7 +10,7 @@ interface FAQSectionProps {
 export default function FAQSection({ items }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  if (!items || items.length === 0) return null;
+  if (!Array.isArray(items) || items.length === 0) return null;
 
   return (
     <section className="mt-12">

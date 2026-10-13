@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getPostBySlug, getRelatedPosts, getAdjacentPosts } from '@/lib/blog';
+import { normalizeFaqItems } from '@/lib/faq';
 import { SITE_URL } from '@/lib/constants';
 import BlogPageClient from './BlogPageClient';
 
@@ -57,7 +58,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
   const siteConfig = { organizationName: 'FreeDiscountCoupons', organizationLogo: `${SITE_URL}/logo.png`, siteUrl: SITE_URL };
 
-  const faqItems = post.faqItems || [];
+  const faqItems = normalizeFaqItems(post.faqItems);
 
   return (
     <BlogPageClient

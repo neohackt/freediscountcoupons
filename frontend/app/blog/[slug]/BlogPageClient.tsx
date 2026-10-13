@@ -139,7 +139,7 @@ export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteC
 
             <div className="grid lg:grid-cols-[1fr_280px] gap-10">
               <div>
-                {post.keyTakeaways && post.keyTakeaways.length > 0 && (
+                {Array.isArray(post.keyTakeaways) && post.keyTakeaways.length > 0 && (
                   <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-8">
                     <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                       <span className="text-lg">💡</span> Key Takeaways
