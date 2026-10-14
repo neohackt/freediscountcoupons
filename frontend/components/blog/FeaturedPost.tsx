@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getMediaUrl } from '@/lib/strapi';
 import type { BlogPost } from '@/types/blog';
 
 interface FeaturedPostProps {
@@ -7,7 +8,7 @@ interface FeaturedPostProps {
 }
 
 export default function FeaturedPost({ post }: FeaturedPostProps) {
-  const imageUrl = post.featuredImage?.url || post.og_image?.url;
+  const imageUrl = getMediaUrl(post.featuredImage?.url || post.og_image?.url);
   const categorySlug = post.category?.slug;
   const categoryName = post.category?.name;
 

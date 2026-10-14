@@ -9,6 +9,7 @@ import BlogContent, { extractHeadings } from '@/components/blog/BlogContent';
 import AuthorBox from '@/components/blog/AuthorBox';
 import FAQSection from '@/components/blog/FAQSection';
 import RelatedPosts from '@/components/blog/RelatedPosts';
+import { getMediaUrl } from '@/lib/strapi';
 import PrevNextNav from '@/components/blog/PrevNextNav';
 import RelatedStores from '@/components/blog/RelatedStores';
 import CouponWidget from '@/components/blog/CouponWidget';
@@ -30,7 +31,7 @@ interface BlogPostClientProps {
 
 export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteConfig, faqItems, prevPost, nextPost }: BlogPostClientProps) {
   const headings = extractHeadings(post.content);
-  const imageUrl = post.featuredImage?.url || post.og_image?.url;
+  const imageUrl = getMediaUrl(post.featuredImage?.url || post.og_image?.url);
   const categoryName = post.category?.name;
   const categorySlug = post.category?.slug;
   const showUpdated = post.updatedAt && post.publishedAt &&

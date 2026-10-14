@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getPostBySlug, getRelatedPosts, getAdjacentPosts } from '@/lib/blog';
 import { normalizeFaqItems } from '@/lib/faq';
 import { SITE_URL } from '@/lib/constants';
+import { getMediaUrl } from '@/lib/strapi';
 import BlogPageClient from './BlogPageClient';
 
 interface BlogPostPageProps {
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   const title = post.seo_title || post.title;
   const description = post.seo_description || post.excerpt;
-  const imageUrl = post.og_image?.url || post.featuredImage?.url;
+  const imageUrl = getMediaUrl(post.og_image?.url || post.featuredImage?.url);
   const url = `${SITE_URL}/blog/${post.slug}`;
 
   return {

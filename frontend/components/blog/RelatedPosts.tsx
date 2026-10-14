@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getMediaUrl } from '@/lib/strapi';
 import type { RelatedPost } from '@/types/blog';
 
 interface RelatedPostsProps {
@@ -18,7 +19,7 @@ export default function RelatedPosts({ posts }: RelatedPostsProps) {
             {post.featuredImage?.url && (
               <div className="relative aspect-[16/10] overflow-hidden">
                 <Image
-                  src={post.featuredImage.url}
+                  src={getMediaUrl(post.featuredImage.url)}
                   alt={post.featuredImage.alternativeText || post.title}
                   fill
                   className="object-cover"

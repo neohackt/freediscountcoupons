@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { getMediaUrl } from '@/lib/strapi';
 import type { BlogAuthor } from '@/types/blog';
 
 interface AuthorBoxProps {
@@ -11,7 +12,7 @@ export default function AuthorBox({ author }: AuthorBoxProps) {
       {author.avatar?.url && (
         <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
           <Image
-            src={author.avatar.url}
+                  src={getMediaUrl(author.avatar.url)}
             alt={author.avatar.alternativeText || author.name}
             fill
             className="object-cover"

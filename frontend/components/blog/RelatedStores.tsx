@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { getMediaUrl } from '@/lib/strapi';
 import type { RelatedStore } from '@/types/blog';
 
 interface RelatedStoresProps {
@@ -22,7 +23,7 @@ export default function RelatedStores({ stores }: RelatedStoresProps) {
             {store.logo?.url ? (
               <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                 <Image
-                  src={store.logo.url}
+                  src={getMediaUrl(store.logo.url)}
                   alt={store.logo.alternativeText || store.name}
                   fill
                   className="object-cover"

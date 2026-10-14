@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getMediaUrl } from '@/lib/strapi';
 
 interface ContentBlock {
   type: string;
@@ -136,7 +137,7 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
         <figure key={index} className="my-6">
           <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100">
             <Image
-              src={block.url || ''}
+              src={getMediaUrl(block.url || '')}
               alt={block.alt || ''}
               fill
               className="object-cover"
