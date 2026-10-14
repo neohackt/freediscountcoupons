@@ -103,7 +103,7 @@ export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteC
           </nav>
 
           <article>
-            <header className="max-w-[750px] mx-auto mb-8">
+            <header className="max-w-[750px] mb-8">
               {categoryName && (
                 <Link
                   href={`/blog?category=${categorySlug}`}
@@ -126,7 +126,7 @@ export default function BlogPageClient({ post, relatedPosts, canonicalUrl, siteC
             </header>
 
             {imageUrl && (
-              <div className="relative aspect-[16/9] max-w-[900px] mx-auto rounded-2xl overflow-hidden mb-10">
+              <div className="relative aspect-[16/9] max-w-[900px] rounded-2xl overflow-hidden mb-10">
                 <Image
                   src={imageUrl}
                   alt={post.featuredImage?.alternativeText || post.title}
