@@ -26,7 +26,7 @@ export default function RelatedStores({ stores }: RelatedStoresProps) {
                   src={getMediaUrl(store.logo.url)}
                   alt={store.logo.alternativeText || store.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-1"
                   sizes="48px"
                 />
               </div>
