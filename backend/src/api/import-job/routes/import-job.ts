@@ -6,6 +6,7 @@ export default {
       handler: 'import-job.uploadAndImport',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -14,6 +15,7 @@ export default {
       handler: 'import-job.linkCouponsToStores',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -22,6 +24,7 @@ export default {
       handler: 'import-job.getJobs',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -30,6 +33,7 @@ export default {
       handler: 'import-job.findOne',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -38,6 +42,7 @@ export default {
       handler: 'import-job.retryJob',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -46,6 +51,7 @@ export default {
       handler: 'import-job.cleanupExpired',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
     {
@@ -54,6 +60,7 @@ export default {
       handler: 'import-job.getStats',
       config: {
         auth: false,
+        policies: ['global::require-import-token'],
       },
     },
   ],

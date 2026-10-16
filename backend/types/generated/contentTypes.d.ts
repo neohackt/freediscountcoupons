@@ -764,7 +764,7 @@ export interface ApiImportJobImportJob extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.DefaultTo<'pending'>;
     total_rows: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
-    type: Schema.Attribute.Enumeration<['stores', 'coupons']> &
+    type: Schema.Attribute.Enumeration<['stores', 'coupons', 'categories']> &
       Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

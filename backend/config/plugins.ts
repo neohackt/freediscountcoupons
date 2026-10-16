@@ -2,6 +2,10 @@ import path from 'path';
 import type { Core } from '@strapi/strapi';
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => ({
+  'csv-import': {
+    enabled: true,
+    resolve: './src/plugins/csv-import',
+  },
   upload: {
     config: {
       provider: '@strapi/provider-upload-local',

@@ -21,7 +21,7 @@
     },
     "type": {
       "type": "enumeration",
-      "enum": ["stores", "coupons"],
+      "enum": ["stores", "coupons", "categories"],
       "required": true
     },
     "status": {

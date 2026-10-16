@@ -1,0 +1,25 @@
+{
+  "name": "csv-import",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-based CSV import for stores, coupons and categories",
+  "strapi": {
+    "kind": "plugin",
+    "name": "csv-import",
+    "displayName": "CSV Import",
+    "description": "Upload CSV files from the admin panel using the existing import engine"
+  },
+  "exports": {
+    "./strapi-server": {
+      "source": "./server/index.js",
+      "require": "./server/index.js",
+      "default": "./server/index.js"
+    },
+    "./strapi-admin": {
+      "source": "./admin/src/index.tsx",
+      "import": "./admin/src/index.tsx",
+      "default": "./admin/src/index.tsx"
+    },
+    "./package.json": "./package.json"
+  }
+}

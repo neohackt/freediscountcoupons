@@ -1,5 +1,6 @@
 import { factories } from '@strapi/strapi';
 import { processImport, deleteExpiredCoupons, cleanupOldExpiredCoupons } from '../../../import-engine/importer';
+import { extractUploadContent, runImportJob } from '../../../import-engine/import-job-runner';
 import { isGoogleSheetUrl, convertGoogleSheetUrl } from '../../../import-engine/parsers';
 import type { ImportFormat, ImportType } from '../../../import-engine/types';
 
@@ -26,60 +27,10 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
 
     if (files?.file) {
       const fileObj = files.file as Record<string, unknown>;
-      const fname = fileObj?.newFilename as string || fileObj?.filename as string || 'import.csv';
-      filename = fname;
-      format = getFormatFromFilename(fname);
-
-      const fs = require('fs');
-      const crypto = require('crypto');
-      let contentBuffer: Buffer | null = null;
-
-      // Method 1: data property (most reliable for fresh uploads)
-      if (fileObj?.data) {
-        const fileData = fileObj.data;
-        if (Buffer.isBuffer(fileData)) {
-          contentBuffer = fileData;
-        } else if (typeof fileData === 'string') {
-          contentBuffer = Buffer.from(fileData);
-        } else if (fileData instanceof ArrayBuffer) {
-          contentBuffer = Buffer.from(fileData);
-        }
-        console.log('Read file from data, type:', typeof fileData);
-      }
-
-      // Method 2: stream (pipe readable stream)
-      if (!contentBuffer && fileObj?.stream) {
-        const chunks: Buffer[] = [];
-        const stream = fileObj.stream as NodeJS.ReadableStream;
-        for await (const chunk of stream) {
-          chunks.push(Buffer.from(chunk));
-        }
-        contentBuffer = Buffer.concat(chunks);
-        console.log('Read file from stream');
-      }
-
-      // Method 3: toBuffer function
-      if (!contentBuffer && typeof fileObj?.toBuffer === 'function') {
-        contentBuffer = fileObj.toBuffer() as Buffer;
-        console.log('Read file from toBuffer');
-      }
-
-      // Method 4: filepath (Strapi v5 default - may be cached)
-      const filepath = fileObj?.filepath as string;
-      if (!contentBuffer && filepath && fs.existsSync(filepath)) {
-        contentBuffer = fs.readFileSync(filepath);
-        console.log('Read file from filepath:', filepath);
-      }
-
-      // Log content hash for debugging
-      if (contentBuffer) {
-        const hash = crypto.createHash('md5').update(contentBuffer).digest('hex');
-        const preview = contentBuffer.toString().slice(0, 200);
-        console.log('File content hash:', hash);
-        console.log('File content preview:', preview);
-      }
-
-      content = contentBuffer || Buffer.from('');
+      const extracted = await extractUploadContent(fileObj);
+      filename = extracted.filename;
+      format = getFormatFromFilename(extracted.filename);
+      content = extracted.content;
       console.log('Final content length:', content.toString().length);
     } else if (sourceUrl) {
       if (isGoogleSheetUrl(sourceUrl)) {
@@ -92,46 +43,15 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
       }
     }
 
-    let job = await strapi.db.query('api::import-job.import-job').create({
-      data: {
-        filename: filename || null,
-        format,
-        type,
-        status: 'pending',
-        total_rows: 0,
-        imported_count: 0,
-        skipped_count: 0,
-        error_count: 0,
-        data: [],
-        errors: [],
-        source_url: actualSourceUrl || null,
-        schedule: schedule || null,
-        is_auto_sync: !!schedule,
-      },
+    const job = await runImportJob({
+      strapi,
+      type,
+      filename,
+      format,
+      content,
+      sourceUrl: actualSourceUrl,
+      schedule,
     });
-
-    // Process synchronously instead of setImmediate
-    const contentLength = content ? content.toString().length : 0;
-    console.log('Content length to process:', contentLength);
-    if (content && contentLength > 0) {
-      console.log('Starting import process...');
-      try {
-        const result = await processImport({
-          strapi,
-          jobId: job.id,
-          format,
-          type,
-          content: content instanceof Buffer ? content : content || '',
-          sourceUrl: actualSourceUrl,
-        });
-        // Refresh job data after import
-        job = await strapi.db.query('api::import-job.import-job').findOne({
-          where: { id: job.id },
-        });
-      } catch (error) {
-        console.error('Import processing failed:', error);
-      }
-    }
 
     const sanitized = await this.sanitizeOutput(job, ctx);
     return this.transformResponse(sanitized);
