@@ -32,6 +32,9 @@ export interface Store {
   faqs?: StoreFaq[] | StoreFaqJsonLd | null;
   website_url?: string;
   affiliate_url?: string;
+  paid_traffic_enabled?: boolean;
+  paid_traffic_tracking_url?: string | null;
+  paid_traffic_sources?: string[];
   country?: string;
   currency?: string;
   social_links?: {

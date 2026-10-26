@@ -41,6 +41,19 @@
     "affiliate_url": {
       "type": "string"
     },
+    "paid_traffic_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow approved paid traffic (Offer18) to redirect visitors through this store's tracking URL. Disabled by default."
+    },
+    "paid_traffic_tracking_url": {
+      "type": "text",
+      "description": "Brand-provided affiliate tracking URL template. Supported macros: {tid}, {aff_id}, {offerid}."
+    },
+    "paid_traffic_sources": {
+      "type": "json",
+      "description": "Allowed paid traffic sources. Only the generic value \"paid\" is supported."
+    },
     "country": {
       "type": "string",
       "maxLength": 2,

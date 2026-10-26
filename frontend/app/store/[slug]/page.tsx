@@ -16,10 +16,21 @@ import { FaqAccordion } from '@/components/ui/FaqAccordion';
 import { StoreJsonLd } from '@/components/seo/StoreJsonLd';
 import { BreadcrumbJsonLd, buildBreadcrumbEntries } from '@/components/seo/BreadcrumbJsonLd';
 import { SITE_URL, STRAPI_URL, BRAND_CONFIG, getStoreLogo } from '@/lib/strapi';
+import { PaidTrafficRedirect } from '@/components/features/PaidTrafficRedirect';
+import {
+  buildPaidTrafficStorePath,
+  evaluatePaidTraffic,
+  isPaidTrafficSource,
+  PAID_TRAFFIC_PARAMS,
+  readPaidTrafficParams,
+  type PaidTrafficConfig,
+} from '@/lib/paid-traffic';
 import { formatCurrency, resolveCouponCurrency } from '@/lib/formatters/currency';
 import type { Store, StoreFaq, StoreFaqJsonLd } from '@/types';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+
+
 
 function normalizeFaqs(raw: StoreFaq[] | StoreFaqJsonLd | null | undefined): StoreFaq[] {
   if (!raw) return [];
@@ -111,6 +122,84 @@ async function getStoreBySlug(slug: string) {
   }
 }
 
+/**
+ * Narrow, server-to-server lookup of a store's paid-traffic configuration.
+ * Protected by a shared secret. Fails closed on any error, missing secret,
+ * timeout, or non-200 response. Never logs the secret or tracking URL.
+ */
+async function getPaidTrafficConfig(slug: string): Promise<PaidTrafficConfig | null> {
+  const secret = process.env.PAID_TRAFFIC_LOOKUP_SECRET;
+  if (!secret) return null; // Fail closed: no secret configured
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(
+      `${STRAPI_URL}/api/stores/slug/${encodeURIComponent(slug)}/paid-traffic`,
+      {
+        headers: { 'x-paid-traffic-secret': secret },
+        cache: 'no-store',
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return (data?.data ?? null) as PaidTrafficConfig | null;
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
+  }
+}
+
+/**
+ * Resolve an approved paid-traffic request.
+ *
+ * Returns a destination only when every check passes. Any problem returns
+ * null so the ordinary store page is rendered instead - never an external
+ * redirect to an unapproved or invalid destination.
+ *
+ * Duplicate query-parameter values are rejected for required tracking params.
+ */
+async function resolvePaidTraffic(
+  slug: string,
+  query: Record<string, string | string[] | undefined>
+): Promise<{ destination: string; storeName: string } | null> {
+  const params = readPaidTrafficParams(query);
+
+  // Reject duplicate values for required tracking parameters
+  const tidValues = query[PAID_TRAFFIC_PARAMS.tid];
+  const affidValues = query[PAID_TRAFFIC_PARAMS.affid];
+  const offeridValues = query[PAID_TRAFFIC_PARAMS.offerid];
+
+  if (Array.isArray(tidValues) && tidValues.length > 1) return null;
+  if (Array.isArray(affidValues) && affidValues.length > 1) return null;
+  if (Array.isArray(offeridValues) && offeridValues.length > 1) return null;
+
+  if (!isPaidTrafficSource(params.source)) return null;
+
+  const config = await getPaidTrafficConfig(slug);
+  if (!config) {
+    console.warn('[PaidTraffic] skipped', { slug, source: params.source, status: 'store-not-found' });
+    return null;
+  }
+
+  const resolution = evaluatePaidTraffic({ config, params });
+
+  if (!resolution.ok) {
+    // Safe diagnostics only: slug, source and status. No click ids, no
+    // tracking URLs and no raw query strings.
+    console.warn('[PaidTraffic] skipped', { slug, source: params.source, status: resolution.reason });
+    return null;
+  }
+
+  return { destination: resolution.destination, storeName: config.name };
+}
+
 function calculateStats(coupons: any[], store?: { currency?: string | null; country?: string | null }) {
   const totalOffers = coupons.length;
   const verifiedCoupons = coupons.filter(c => c.verified).length;
@@ -153,8 +242,20 @@ function getBestDiscount(coupons: any[], store?: { currency?: string | null; cou
   return 'DEALS';
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { slug } = await params;
+  const query = (await searchParams) ?? {};
+
+  // For paid traffic, return minimal metadata (no store fetch, noindex).
+  // This prevents canonical URLs and SEO metadata from being generated for
+  // a page that will never render normally.
+  if (isPaidTrafficSource(readPaidTrafficParams(query).source)) {
+    return {
+      title: 'Redirecting',
+      robots: { index: false, follow: false },
+    };
+  }
+
   const store = await getStoreBySlug(slug);
   
   if (!store) {
@@ -199,11 +300,26 @@ export default async function StorePage({
   searchParams 
 }: { 
   params: Promise<{ slug: string }>; 
-  searchParams: Promise<{ coupon?: string }> 
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { slug } = await params;
-  const { coupon: couponId } = await searchParams;
-  
+  const query = await searchParams;
+  const couponId = typeof query.coupon === 'string' ? query.coupon : undefined;
+
+  // Approved paid traffic (Offer18): resolve and redirect before any coupon
+  // data is fetched or rendered. Every failure falls through to the normal
+  // store page below.
+  const paidTraffic = await resolvePaidTraffic(slug, query);
+  if (paidTraffic) {
+    return (
+      <PaidTrafficRedirect
+        destination={paidTraffic.destination}
+        storePath={buildPaidTrafficStorePath(slug)}
+        storeName={paidTraffic.storeName}
+      />
+    );
+  }
+
   const store = await getStoreBySlug(slug);
   
   if (!store) {

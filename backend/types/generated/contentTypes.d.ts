@@ -814,6 +814,10 @@ export interface ApiStoreStore extends Struct.CollectionTypeSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     noindex: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     og_image: Schema.Attribute.Media<'images'>;
+    paid_traffic_enabled: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    paid_traffic_sources: Schema.Attribute.JSON;
+    paid_traffic_tracking_url: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
     seo_description: Schema.Attribute.Text;
     seo_title: Schema.Attribute.String;

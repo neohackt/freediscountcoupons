@@ -179,6 +179,13 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
       return ctx.notFound('Store not found');
     }
 
+    // Paid-traffic configuration is served only by the dedicated, secret
+    // gated endpoint. Strip it here so the brand tracking URL template never
+    // reaches ordinary page payloads or client-side props.
+    delete entity.paid_traffic_enabled;
+    delete entity.paid_traffic_tracking_url;
+    delete entity.paid_traffic_sources;
+
     // Safety net: regenerate description_html if missing, empty, or contains raw markdown
     const looksLikeMarkdown = entity.description_html && /^#+\s/m.test(entity.description_html);
     if (entity.description && (!entity.description_html || entity.description_html.length === 0 || looksLikeMarkdown)) {
@@ -201,5 +208,44 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
     }
 
     return this.transformResponse(entity);
+  },
+
+  /**
+   * Narrow, server-to-server lookup of a store's paid-traffic configuration.
+   *
+   * Returns only the fields required to resolve a paid redirect: no coupons,
+   * no logo, no categories, no descriptions. The route is protected by the
+   * `global::require-paid-traffic-secret` policy so the brand tracking URL
+   * template is not readable from the public internet.
+   */
+  async paidTrafficConfig(ctx) {
+    const { slug } = ctx.params;
+
+    const store = await strapi.db.query('api::store.store').findOne({
+      where: { slug, publishedAt: { $notNull: true } },
+      select: [
+        'name',
+        'slug',
+        'paid_traffic_enabled',
+        'paid_traffic_sources',
+        'paid_traffic_tracking_url',
+      ],
+    });
+
+    if (!store) {
+      return ctx.notFound('Store not found');
+    }
+
+    const sources = Array.isArray(store.paid_traffic_sources)
+      ? store.paid_traffic_sources.filter((value: unknown) => typeof value === 'string')
+      : [];
+
+    return this.transformResponse({
+      name: store.name,
+      slug: store.slug,
+      paid_traffic_enabled: store.paid_traffic_enabled === true,
+      paid_traffic_sources: sources,
+      paid_traffic_tracking_url: store.paid_traffic_tracking_url || null,
+    });
   },
 }));

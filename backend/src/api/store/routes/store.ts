@@ -30,5 +30,17 @@ export default {
       handler: 'store.countryMarkets',
       config: { auth: false },
     },
+    {
+      // Server-to-server only: returns a store's paid-traffic configuration.
+      // Protected by a shared secret so the brand tracking URL template is
+      // not publicly readable.
+      method: 'GET',
+      path: '/stores/slug/:slug/paid-traffic',
+      handler: 'store.paidTrafficConfig',
+      config: {
+        auth: false,
+        policies: ['global::require-paid-traffic-secret'],
+      },
+    },
   ],
 };
