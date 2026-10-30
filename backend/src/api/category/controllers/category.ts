@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi';
+import { stripPaidTrafficFields } from '../../../utils/sanitize';
 
 export default factories.createCoreController('api::category.category', ({ strapi }) => ({
   async findBySlug(ctx) {
@@ -16,6 +17,9 @@ export default factories.createCoreController('api::category.category', ({ strap
     if (!entity) {
       return ctx.notFound('Category not found');
     }
+
+    // Strip paid-traffic configuration from nested store objects
+    stripPaidTrafficFields(entity);
 
     const sanitizedEntity = await this.sanitizeOutput(entity, ctx);
 

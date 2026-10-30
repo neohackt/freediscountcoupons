@@ -4,6 +4,7 @@
 
 import { factories } from '@strapi/strapi';
 import { marked } from 'marked';
+import { stripPaidTrafficFields } from '../../../utils/sanitize';
 
 function ensureDescriptionHtml(entity: any) {
   if (!entity) return entity;
@@ -85,6 +86,11 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
       orderBy: { is_popular: 'desc' },
     });
 
+    // Strip paid-traffic configuration from all public responses
+    for (const entity of entities) {
+      stripPaidTrafficFields(entity);
+    }
+
     return this.transformResponse(entities);
   },
 
@@ -98,6 +104,9 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
     if (!entity) {
       return ctx.notFound('Store not found');
     }
+
+    // Strip paid-traffic configuration from public response
+    stripPaidTrafficFields(entity);
 
     return this.transformResponse(entity);
   },
@@ -137,6 +146,11 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
       seen.add(s.slug);
       return true;
     });
+
+    // Strip paid-traffic configuration from public response
+    for (const entity of unique) {
+      stripPaidTrafficFields(entity);
+    }
 
     return this.transformResponse(unique);
   },
@@ -182,9 +196,7 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
     // Paid-traffic configuration is served only by the dedicated, secret
     // gated endpoint. Strip it here so the brand tracking URL template never
     // reaches ordinary page payloads or client-side props.
-    delete entity.paid_traffic_enabled;
-    delete entity.paid_traffic_tracking_url;
-    delete entity.paid_traffic_sources;
+    stripPaidTrafficFields(entity);
 
     // Safety net: regenerate description_html if missing, empty, or contains raw markdown
     const looksLikeMarkdown = entity.description_html && /^#+\s/m.test(entity.description_html);

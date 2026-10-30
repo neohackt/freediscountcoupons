@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi';
+import { stripPaidTrafficFields } from '../../../utils/sanitize';
 
 export default factories.createCoreController('api::event.event', ({ strapi }) => ({
   async findActive(ctx) {
@@ -33,6 +34,9 @@ export default factories.createCoreController('api::event.event', ({ strapi }) =
     if (!entity) {
       return ctx.notFound('Event not found');
     }
+
+    // Strip paid-traffic configuration from nested store objects
+    stripPaidTrafficFields(entity);
 
     return this.transformResponse(entity);
   },

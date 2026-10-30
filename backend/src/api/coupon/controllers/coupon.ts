@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi';
+import { stripPaidTrafficFields } from '../../../utils/sanitize';
 
 function buildWhere(filters: any): any {
   if (!filters || typeof filters !== 'object') return {};
@@ -122,6 +123,11 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
       limit: pageSize,
     });
 
+    // Strip paid-traffic configuration from nested store objects
+    for (const entity of entities) {
+      stripPaidTrafficFields(entity);
+    }
+
     const total = await strapi.db.query('api::coupon.coupon').count({ where });
 
     return this.transformResponse(entities, {
@@ -146,6 +152,11 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
       limit: 20,
     });
 
+    // Strip paid-traffic configuration from nested store objects
+    for (const entity of entities) {
+      stripPaidTrafficFields(entity);
+    }
+
     return this.transformResponse(entities);
   },
 
@@ -159,6 +170,11 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
       orderBy: [{ times_used: 'desc' }, { createdAt: 'desc' }],
       limit: 24,
     });
+
+    // Strip paid-traffic configuration from nested store objects
+    for (const entity of entities) {
+      stripPaidTrafficFields(entity);
+    }
 
     return this.transformResponse(entities);
   },
