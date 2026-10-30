@@ -222,7 +222,9 @@ export function normalizeStoreData(data: Record<string, unknown>): StoreData {
   if (data.seo_title) result.seo_title = String(data.seo_title).trim();
   if (data.seo_description) result.seo_description = String(data.seo_description).trim();
 
-  if (data.category_names) result.category_names = String(data.category_names).trim();
+  if (data.category_names && String(data.category_names).trim() !== '') {
+    result.category_names = String(data.category_names).trim();
+  }
 
   return result;
 }
@@ -311,7 +313,9 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
     result.is_expired = val === 'true' || val === '1' || val === 'yes';
   }
 
-  if (data.category_names) result.category_names = String(data.category_names).trim();
+  if (data.category_names && String(data.category_names).trim() !== '') {
+    result.category_names = String(data.category_names).trim();
+  }
 
   const parsedCountries = parseCountryCodes(data.country_codes);
   if (parsedCountries === 'GLOBAL') {

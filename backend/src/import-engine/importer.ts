@@ -8,7 +8,7 @@ import type { ParsedRow, ImportError, ImportType } from './types';
 import { normalizeStoreData, normalizeCouponData, normalizeCategoryData } from './validator';
 import { downloadLogo, getLogoFilename } from './logoHandler';
 import { parseFile } from './parsers';
-import { revalidationService, type ContentType } from '../utils/revalidation';
+import { revalidationService } from '../utils/revalidation';
 
 interface ImportContext {
   strapi: StrapiType;
@@ -19,34 +19,92 @@ interface ImportContext {
   sourceUrl?: string;
 }
 
-async function resolveCategoryIds(strapi: StrapiType, categoryNames: string): Promise<number[]> {
+interface StoreDocument {
+  documentId: string;
+  id?: number;
+  slug: string;
+  name?: string;
+}
+
+interface CategoryDocument {
+  documentId: string;
+  id?: number;
+  name: string;
+}
+
+interface CountryDocument {
+  documentId: string;
+  id?: number;
+  code: string;
+}
+
+interface CouponDocument {
+  documentId: string;
+  id?: number;
+  code: string;
+  slug?: string;
+  store?: { documentId: string; name?: string } | null;
+  categories?: Array<{ documentId: string; name?: string }>;
+  countries?: Array<{ documentId: string; code?: string }>;
+  [key: string]: unknown;
+}
+
+interface CouponImportResult {
+  id: number;
+  documentId: string;
+  skipped: boolean;
+  status: 'created' | 'updated' | 'unchanged';
+  storeSlug?: string;
+  slug?: string;
+}
+
+export async function findPublishedStore(strapi: StrapiType, slug: string): Promise<StoreDocument | null> {
+  const stores = await strapi.documents('api::store.store').findMany({
+    filters: { slug },
+    status: 'published',
+  });
+
+  return Array.isArray(stores) && stores.length > 0 ? (stores[0] as StoreDocument) : null;
+}
+
+export async function resolveCategoryDocumentIds(strapi: StrapiType, categoryNames: string): Promise<string[]> {
   if (!categoryNames || categoryNames.trim() === '') return [];
 
-  const names = categoryNames
-    .split(',')
-    .map(n => n.trim())
-    .filter(Boolean);
+  const names = [...new Set(
+    categoryNames
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+  )];
 
   if (names.length === 0) return [];
 
-  const categories = await strapi.db.query('api::category.category').findMany({
-    where: {
-      name: { $in: names },
-      publishedAt: { $notNull: true },
-    },
+  const categories = await strapi.documents('api::category.category').findMany({
+    filters: { name: { $in: names } },
+    status: 'published',
   });
 
-  const foundNames = new Set(categories.map(c => c.name));
-  const missing = names.filter(n => !foundNames.has(n));
+  const byName = new Map<string, string>();
+  for (const category of Array.isArray(categories) ? categories : []) {
+    const document = category as CategoryDocument;
+    if (document.name && document.documentId && !byName.has(document.name)) {
+      byName.set(document.name, document.documentId);
+    }
+  }
 
+  const missing = names.filter((name) => !byName.has(name));
   if (missing.length > 0) {
     throw new Error(`Categories not found: ${missing.join(', ')}`);
   }
 
-  return categories.map(c => c.id);
+  return names.map((name) => byName.get(name) as string);
 }
 
 export async function resolveCountryIds(strapi: StrapiType, codes: string[]): Promise<number[]> {
+  // Backwards-compatible helper retained for existing callers/tests. The
+  // document-service implementation returns document IDs as strings, but this
+  // helper's historical contract is numeric IDs, so it is not used by the
+  // coupon import path.
   if (codes.length === 0) return [];
 
   const countries = await strapi.db.query('api::country.country').findMany({
@@ -56,27 +114,58 @@ export async function resolveCountryIds(strapi: StrapiType, codes: string[]): Pr
     },
   });
 
-  const foundCodes = new Set(countries.map(c => String(c.code).toUpperCase()));
-  const missing = codes.filter(code => !foundCodes.has(code));
+  const foundCodes = new Set(countries.map((country: any) => String(country.code).toUpperCase()));
+  const missing = codes.filter((code) => !foundCodes.has(code));
 
   if (missing.length > 0) {
     throw new Error(`Countries not found: ${missing.join(',')}`);
   }
 
-  const idByCode = new Map(countries.map(c => [String(c.code).toUpperCase(), c.id]));
-  return codes.map(code => idByCode.get(code) as number);
+  const idByCode = new Map(countries.map((country: any) => [String(country.code).toUpperCase(), country.id]));
+  return codes.map((code) => idByCode.get(code) as number);
+}
+
+export async function resolveCountryDocumentIds(strapi: StrapiType, codes: string[]): Promise<string[]> {
+  if (codes.length === 0) return [];
+
+  const normalized = [...new Set(
+    codes
+      .map((code) => String(code).trim().toUpperCase())
+      .filter(Boolean)
+  )];
+
+  if (normalized.length === 0) return [];
+
+  const invalid = normalized.filter((code) => !/^[A-Z]{2}$/.test(code));
+  if (invalid.length > 0) {
+    throw new Error(`Invalid country code: ${invalid.join(', ')}`);
+  }
+
+  const countries = await strapi.documents('api::country.country').findMany({
+    filters: { code: { $in: normalized } },
+    status: 'published',
+  });
+
+  const byCode = new Map<string, string>();
+  for (const country of Array.isArray(countries) ? countries : []) {
+    const document = country as CountryDocument;
+    if (document.code && document.documentId && !byCode.has(document.code.toUpperCase())) {
+      byCode.set(document.code.toUpperCase(), document.documentId);
+    }
+  }
+
+  const missing = normalized.filter((code) => !byCode.has(code));
+  if (missing.length > 0) {
+    throw new Error(`Countries not found: ${missing.join(', ')}`);
+  }
+
+  return normalized.map((code) => byCode.get(code) as string);
 }
 
 export type CountryUpdateIntent =
   | { action: 'omit' }
   | { action: 'set'; codes: string[] };
 
-/**
- * Decide how a normalized country_codes value affects the countries relation.
- * - undefined (blank/missing) → preserve existing on update, GLOBAL on create
- * - 'GLOBAL' → clear (empty relation)
- * - codes → replace with resolved IDs
- */
 export function getCountryUpdateIntent(
   normalizedValue: string | undefined,
   isNew: boolean
@@ -89,163 +178,86 @@ export function getCountryUpdateIntent(
   }
   return {
     action: 'set',
-    codes: String(normalizedValue).split(',').map(c => c.trim()).filter(Boolean),
+    codes: String(normalizedValue).split(',').map((code) => code.trim()).filter(Boolean),
   };
 }
 
-export async function processImport(context: ImportContext): Promise<{
-  imported: number;
-  skipped: number;
-  errors: ImportError[];
-}> {
-  const { strapi, jobId, format, type, content, sourceUrl } = context;
-
-  // Initialize revalidation service with Strapi instance
-  revalidationService.setStrapi(strapi);
-
-  await strapi.db.query('api::import-job.import-job').update({
-    where: { id: jobId },
-    data: { status: 'processing', source_url: sourceUrl || null },
-  });
-
-  let parsedRows: ParsedRow[];
-
-  try {
-    parsedRows = await parseFile(content, format as 'csv' | 'xlsx' | 'json' | 'google_sheet');
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Failed to parse file';
-    await strapi.db.query('api::import-job.import-job').update({
-      where: { id: jobId },
-      data: {
-        status: 'failed',
-        error_count: 1,
-        errors: [{ row: 0, field: 'file', message: errorMsg, value: null }],
-      },
-    });
-    throw new Error(errorMsg);
-  }
-
-  await strapi.db.query('api::import-job.import-job').update({
-    where: { id: jobId },
-    data: { total_rows: parsedRows.length, data: parsedRows.slice(0, 100).map(r => r.data) },
-  });
-
-  let imported = 0;
-  let skipped = 0;
-  const allErrors: ImportError[] = [];
-
-  // Track imported items for revalidation
-  const importedStores: { slug: string }[] = [];
-  const importedCoupons: { storeSlug: string; slug?: string }[] = [];
-  const importedCategories: { slug: string }[] = [];
-
-  for (let i = 0; i < parsedRows.length; i++) {
-    const row = parsedRows[i];
-
-    try {
-      if (type === 'stores') {
-        const result = await importStoreRow(strapi, row.data);
-        if (result.skipped) {
-          skipped++;
-        } else {
-          imported++;
-          if (result.slug) importedStores.push({ slug: result.slug });
-        }
-      } else if (type === 'categories') {
-        const result = await importCategoryRow(strapi, row.data);
-        if (result.skipped) {
-          skipped++;
-        } else {
-          imported++;
-          if (result.slug) importedCategories.push({ slug: result.slug });
-        }
-      } else {
-        const result = await importCouponRow(strapi, row.data);
-        if (result.skipped) {
-          skipped++;
-        } else {
-          imported++;
-          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
-        }
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      // Provide more specific error messages based on the error content
-      let field = 'import';
-      let message = errorMsg;
-
-      if (errorMsg.includes('expires_at') || errorMsg.includes('date') || errorMsg.includes('timestamp')) {
-        field = 'expires_at';
-        message = `Invalid date format. Expected DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, or ISO timestamp. Received: "${row.data.expires_at}"`;
-      } else if (errorMsg.includes('Store not found')) {
-        field = 'store_slug';
-        message = errorMsg;
-      } else if (errorMsg.includes('Countries not found')) {
-        field = 'country_codes';
-        message = errorMsg;
-      } else if (errorMsg.includes('currency')) {
-        field = 'currency';
-        message = errorMsg;
-      } else if (errorMsg.includes('discount_value')) {
-        field = 'discount_value';
-        message = errorMsg;
-      }
-
-      allErrors.push({
-        row: row.row,
-        field,
-        message,
-        value: row.data,
-      });
-      // Don't increment skipped for errors - errors are tracked separately
-    }
-
-    if ((i + 1) % 10 === 0 || i === parsedRows.length - 1) {
-      await strapi.db.query('api::import-job.import-job').update({
-        where: { id: jobId },
-        data: {
-          imported_count: imported,
-          skipped_count: skipped,
-          error_count: allErrors.length,
-        },
-      });
-    }
-  }
-
-  await strapi.db.query('api::import-job.import-job').update({
-    where: { id: jobId },
-    data: {
-      status: allErrors.length === parsedRows.length ? 'failed' : 'completed',
-      imported_count: imported,
-      skipped_count: skipped,
-      error_count: allErrors.length,
-      errors: allErrors,
-    },
-  });
-
-  // Trigger revalidation for all imported items
-  if (importedStores.length > 0) {
-    revalidationService.addRoutes('store', importedStores);
-  }
-  if (importedCoupons.length > 0) {
-    revalidationService.addRoutes('coupon', importedCoupons);
-  }
-  if (importedCategories.length > 0) {
-    revalidationService.addRoutes('category', importedCategories);
-  }
-
-  // Also revalidate homepage and sitemap for any import
-  revalidationService.addRoutes('homepage', [{}]);
-  revalidationService.addRoutes('sitemap', [{}]);
-  
-  // Flush all pending revalidations in a single batched request
-  await revalidationService.flush();
-
-  return { imported, skipped, errors: allErrors };
+function sameDocumentIds(actual: string[], expected: string[]): boolean {
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
 }
 
-const isProvided = (v: unknown): boolean =>
-  v !== undefined && v !== null && String(v).trim() !== '';
+async function findExistingCoupon(
+  strapi: StrapiType,
+  code: string,
+  storeDocumentId: string
+): Promise<CouponDocument | null> {
+  const candidates = await strapi.documents('api::coupon.coupon').findMany({
+    filters: { code },
+    status: 'draft',
+    populate: ['store'],
+  });
+
+  const matches = (Array.isArray(candidates) ? candidates : []).filter((coupon: any) => {
+    return coupon?.store?.documentId === storeDocumentId;
+  }) as CouponDocument[];
+
+  if (matches.length > 1) {
+    throw new Error(`Ambiguous coupon match: code ${code} for store ${storeDocumentId}`);
+  }
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+async function hasUnpublishedDraft(strapi: StrapiType, documentId: string): Promise<boolean> {
+  const publishedVersions = await strapi.documents('api::coupon.coupon').findMany({
+    filters: { documentId },
+    status: 'published',
+  });
+
+  if (!Array.isArray(publishedVersions) || publishedVersions.length === 0) {
+    return false;
+  }
+
+  const modifiedDrafts = await strapi.documents('api::coupon.coupon').findMany({
+    filters: { documentId },
+    status: 'draft',
+    publicationFilter: 'modified',
+  });
+
+  return Array.isArray(modifiedDrafts) && modifiedDrafts.length > 0;
+}
+
+async function verifyPublishedCouponRelations(
+  strapi: StrapiType,
+  documentId: string,
+  expectedCategories: string[] | null,
+  expectedCountries: string[] | null
+): Promise<void> {
+  const published = await strapi.documents('api::coupon.coupon').findMany({
+    filters: { documentId },
+    status: 'published',
+    populate: ['categories', 'countries'],
+  });
+
+  const coupon = Array.isArray(published) && published.length > 0 ? (published[0] as CouponDocument) : null;
+  if (!coupon) {
+    throw new Error('Coupon relation update failed: published document not found');
+  }
+
+  if (expectedCategories !== null) {
+    const actual = (coupon.categories || []).map((category: any) => String(category.documentId));
+    if (!sameDocumentIds([...actual].sort(), [...expectedCategories].sort())) {
+      throw new Error('Coupon relation update failed: category verification failed');
+    }
+  }
+
+  if (expectedCountries !== null) {
+    const actual = (coupon.countries || []).map((country: any) => String(country.documentId));
+    if (!sameDocumentIds([...actual].sort(), [...expectedCountries].sort())) {
+      throw new Error('Coupon relation update failed: country verification failed');
+    }
+  }
+}
 
 async function importStoreRow(
   strapi: StrapiType,
@@ -258,10 +270,7 @@ async function importStoreRow(
   });
 
   if (existingStore) {
-    // Resolve category names to IDs for update
-    const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
-    // Build update payload from ONLY non-empty supplied CSV fields.
-    // Blank cells preserve existing Strapi values.
+    const categoryIds = await resolveCategoryDocumentIds(strapi, normalized.category_names || '');
     const updateData: Record<string, unknown> = {};
     if (isProvided(data.name)) updateData.name = normalized.name;
     if (isProvided(data.slug)) updateData.slug = normalized.slug;
@@ -329,8 +338,7 @@ async function importStoreRow(
 
   const slug = normalized.slug || normalized.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
 
-  // Resolve category names to IDs
-  const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
+  const categoryIds = await resolveCategoryDocumentIds(strapi, normalized.category_names || '');
 
   const createData: Record<string, unknown> = {
     name: normalized.name,
@@ -355,7 +363,6 @@ async function importStoreRow(
     data: createData,
   });
 
-  // Publish the entry so it appears in the admin panel
   try {
     const entry = await strapi.db.query('api::store.store').findOne({
       where: { id: created.id },
@@ -372,56 +379,76 @@ async function importStoreRow(
   return { id: created.id, skipped: false, slug };
 }
 
-async function importCouponRow(
+export async function importCouponRow(
   strapi: StrapiType,
   data: Record<string, unknown>
-): Promise<{ id: number; skipped: boolean; storeSlug?: string; slug?: string }> {
+): Promise<CouponImportResult> {
   const normalized = normalizeCouponData(data);
 
-  let storeId = null;
-  let storeSlug = normalized.store_slug;
-
-  if (normalized.store_slug) {
-    const store = await strapi.db.query('api::store.store').findOne({
-      where: { slug: normalized.store_slug },
-    });
-    storeId = store?.id || null;
+  if (!normalized.code) {
+    throw new Error('Coupon code is required');
+  }
+  if (!normalized.store_slug) {
+    throw new Error('Store slug is required');
   }
 
-  if (!storeId) {
+  const store = await findPublishedStore(strapi, normalized.store_slug);
+  if (!store) {
     throw new Error(`Store not found: ${normalized.store_slug}`);
   }
 
-  // Resolve category names to IDs
-  const categoryIds = await resolveCategoryIds(strapi, normalized.category_names || '');
-
-  const existingCoupon = await strapi.db.query('api::coupon.coupon').findOne({
-    where: {
-      code: normalized.code,
-      store: storeId,
-    },
-  });
-
-  // Blank/missing country_codes preserves the existing country relation on
-  // update, and means GLOBAL on create. 'GLOBAL' clears. Codes replace.
-  const countryIntent = getCountryUpdateIntent(normalized.country_codes, !existingCoupon);
-  const countryIds = countryIntent.action === 'set' && countryIntent.codes.length > 0
-    ? await resolveCountryIds(strapi, countryIntent.codes)
+  const hasCategories = normalized.category_names !== undefined;
+  const categoryDocumentIds = hasCategories
+    ? await resolveCategoryDocumentIds(strapi, normalized.category_names || '')
     : [];
 
+  const existingCoupon = await findExistingCoupon(strapi, normalized.code, store.documentId);
+
+  const countryIntent = getCountryUpdateIntent(normalized.country_codes, !existingCoupon);
+  const countryDocumentIds =
+    countryIntent.action === 'set' && countryIntent.codes.length > 0
+      ? await resolveCountryDocumentIds(strapi, countryIntent.codes)
+      : [];
+
   if (existingCoupon) {
-    // If category names provided, update the categories relation
-    if (categoryIds.length > 0) {
-      await strapi.entityService.update('api::coupon.coupon', existingCoupon.id, {
-        data: { categories: categoryIds },
-      });
+    if (await hasUnpublishedDraft(strapi, existingCoupon.documentId)) {
+      throw new Error(`Draft conflict: unpublished changes exist for coupon ${normalized.code}`);
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (hasCategories) {
+      updateData.categories = { set: categoryDocumentIds };
     }
     if (countryIntent.action === 'set') {
-      await strapi.entityService.update('api::coupon.coupon', existingCoupon.id, {
-        data: { countries: countryIds },
-      });
+      updateData.countries = { set: countryDocumentIds };
     }
-    return { id: existingCoupon.id, skipped: true, storeSlug, slug: existingCoupon.slug };
+
+    if (Object.keys(updateData).length > 0) {
+      await strapi.documents('api::coupon.coupon').update({
+        documentId: existingCoupon.documentId,
+        data: updateData,
+      });
+
+      await strapi.documents('api::coupon.coupon').publish({
+        documentId: existingCoupon.documentId,
+      });
+
+      await verifyPublishedCouponRelations(
+        strapi,
+        existingCoupon.documentId,
+        hasCategories ? categoryDocumentIds : null,
+        countryIntent.action === 'set' ? countryDocumentIds : null
+      );
+    }
+
+    return {
+      id: existingCoupon.id as number,
+      documentId: existingCoupon.documentId,
+      skipped: Object.keys(updateData).length === 0,
+      status: Object.keys(updateData).length > 0 ? 'updated' : 'unchanged',
+      storeSlug: normalized.store_slug,
+      slug: existingCoupon.slug,
+    };
   }
 
   const createData: Record<string, unknown> = {
@@ -439,35 +466,38 @@ async function importCouponRow(
     is_expired: normalized.is_expired || false,
     success_rate: 0,
     times_used: 0,
-    store: storeId,
-    categories: categoryIds,
-    countries: countryIds,
+    store: store.documentId,
+    categories: { set: categoryDocumentIds },
+    countries: { set: countryDocumentIds },
   };
 
-  // Only include expires_at if it has a value
   if (normalized.expires_at) {
     createData.expires_at = normalized.expires_at;
   }
 
-  const created = await strapi.entityService.create('api::coupon.coupon', {
+  const created = await strapi.documents('api::coupon.coupon').create({
     data: createData,
   });
 
-  // Publish the entry so it appears in the admin panel
-  try {
-    const entry = await strapi.db.query('api::coupon.coupon').findOne({
-      where: { id: created.id },
-    });
-    if (entry?.documentId) {
-      await strapi.documents('api::coupon.coupon').publish({
-        documentId: entry.documentId,
-      });
-    }
-  } catch (e) {
-    console.error('Failed to publish coupon:', e);
-  }
+  await strapi.documents('api::coupon.coupon').publish({
+    documentId: (created as any).documentId,
+  });
 
-  return { id: created.id, skipped: false, storeSlug, slug: created.slug };
+  await verifyPublishedCouponRelations(
+    strapi,
+    (created as any).documentId,
+    categoryDocumentIds,
+    countryDocumentIds
+  );
+
+  return {
+    id: (created as any).id as number,
+    documentId: (created as any).documentId as string,
+    skipped: false,
+    status: 'created',
+    storeSlug: normalized.store_slug,
+    slug: (created as any).slug,
+  };
 }
 
 async function importCategoryRow(
@@ -497,7 +527,6 @@ async function importCategoryRow(
     data: createData,
   });
 
-  // Publish the entry so it appears in the admin panel
   try {
     const entry = await strapi.db.query('api::category.category').findOne({
       where: { id: created.id },
@@ -513,6 +542,168 @@ async function importCategoryRow(
 
   return { id: created.id, skipped: false, slug };
 }
+
+export async function processImport(context: ImportContext): Promise<{
+  imported: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+  errors: ImportError[];
+}> {
+  const { strapi, jobId, format, type, content, sourceUrl } = context;
+
+  revalidationService.setStrapi(strapi);
+
+  await strapi.db.query('api::import-job.import-job').update({
+    where: { id: jobId },
+    data: { status: 'processing', source_url: sourceUrl || null },
+  });
+
+  let parsedRows: ParsedRow[];
+
+  try {
+    parsedRows = await parseFile(content, format as 'csv' | 'xlsx' | 'json' | 'google_sheet');
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to parse file';
+    await strapi.db.query('api::import-job.import-job').update({
+      where: { id: jobId },
+      data: {
+        status: 'failed',
+        error_count: 1,
+        errors: [{ row: 0, field: 'file', message: errorMsg, value: null }],
+      },
+    });
+    throw new Error(errorMsg);
+  }
+
+  await strapi.db.query('api::import-job.import-job').update({
+    where: { id: jobId },
+    data: { total_rows: parsedRows.length, data: parsedRows.slice(0, 100).map((row) => row.data) },
+  });
+
+  let imported = 0;
+  let updated = 0;
+  let unchanged = 0;
+  let skipped = 0;
+  const allErrors: ImportError[] = [];
+
+  const importedStores: { slug: string }[] = [];
+  const importedCoupons: { storeSlug: string; slug?: string }[] = [];
+  const importedCategories: { slug: string }[] = [];
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    const row = parsedRows[i];
+
+    try {
+      if (type === 'stores') {
+        const result = await importStoreRow(strapi, row.data);
+        if (result.skipped) {
+          skipped++;
+        } else {
+          imported++;
+          if (result.slug) importedStores.push({ slug: result.slug });
+        }
+      } else if (type === 'categories') {
+        const result = await importCategoryRow(strapi, row.data);
+        if (result.skipped) {
+          skipped++;
+        } else {
+          imported++;
+          if (result.slug) importedCategories.push({ slug: result.slug });
+        }
+      } else {
+        const result = await importCouponRow(strapi, row.data);
+        if (result.status === 'created') {
+          imported++;
+          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
+        } else if (result.status === 'updated') {
+          imported++;
+          updated++;
+          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
+        } else {
+          skipped++;
+          unchanged++;
+        }
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      let field = 'import';
+      let message = errorMsg;
+
+      if (errorMsg.includes('expires_at') || errorMsg.includes('date') || errorMsg.includes('timestamp')) {
+        field = 'expires_at';
+        message = `Invalid date format. Expected DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, or ISO timestamp. Received: "${row.data.expires_at}"`;
+      } else if (errorMsg.includes('Store not found')) {
+        field = 'store_slug';
+        message = errorMsg;
+      } else if (errorMsg.includes('Categories not found')) {
+        field = 'category_names';
+        message = errorMsg;
+      } else if (errorMsg.includes('Countries not found') || errorMsg.includes('Invalid country code')) {
+        field = 'country_codes';
+        message = errorMsg;
+      } else if (errorMsg.includes('currency')) {
+        field = 'currency';
+        message = errorMsg;
+      } else if (errorMsg.includes('discount_value')) {
+        field = 'discount_value';
+        message = errorMsg;
+      } else if (errorMsg.includes('Draft conflict') || errorMsg.includes('Ambiguous coupon match') || errorMsg.includes('Coupon relation update failed')) {
+        field = 'relations';
+        message = errorMsg;
+      }
+
+      allErrors.push({
+        row: row.row,
+        field,
+        message,
+        value: row.data,
+      });
+    }
+
+    if ((i + 1) % 10 === 0 || i === parsedRows.length - 1) {
+      await strapi.db.query('api::import-job.import-job').update({
+        where: { id: jobId },
+        data: {
+          imported_count: imported,
+          skipped_count: skipped,
+          error_count: allErrors.length,
+        },
+      });
+    }
+  }
+
+  await strapi.db.query('api::import-job.import-job').update({
+    where: { id: jobId },
+    data: {
+      status: allErrors.length === parsedRows.length ? 'failed' : 'completed',
+      imported_count: imported,
+      skipped_count: skipped,
+      error_count: allErrors.length,
+      errors: allErrors,
+    },
+  });
+
+  if (importedStores.length > 0) {
+    revalidationService.addRoutes('store', importedStores);
+  }
+  if (importedCoupons.length > 0) {
+    revalidationService.addRoutes('coupon', importedCoupons);
+  }
+  if (importedCategories.length > 0) {
+    revalidationService.addRoutes('category', importedCategories);
+  }
+
+  revalidationService.addRoutes('homepage', [{}]);
+  revalidationService.addRoutes('sitemap', [{}]);
+
+  await revalidationService.flush();
+
+  return { imported, updated, unchanged, skipped, errors: allErrors };
+}
+
+const isProvided = (v: unknown): boolean =>
+  v !== undefined && v !== null && String(v).trim() !== '';
 
 export async function deleteExpiredCoupons(strapi: StrapiType): Promise<number> {
   const now = new Date().toISOString();
