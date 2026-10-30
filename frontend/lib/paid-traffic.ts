@@ -16,20 +16,23 @@ export const PAID_TRAFFIC_PARAMS = {
   tid: 'fdc_tid',
   affid: 'fdc_affid',
   offerid: 'fdc_offerid',
+  affSub2: 'fdc_aff_sub2',
 } as const;
 
 /**
  * Macros supported inside a brand tracking URL template.
  * Verified against the Offer18 tracking URL macro documentation
  * (https://knowledgebase.offer18.com/network/offers/tracking-url-macros):
- *   {tid}     - Offer18 platform click id
- *   {aff_id}  - Offer18 affiliate id
- *   {offerid} - Offer18 offer id
+ *   {tid}      - Offer18 platform click id
+ *   {aff_id}   - Offer18 affiliate id
+ *   {offerid}  - Offer18 offer id
+ *   {aff_sub2} - Offer18 affiliate sub-id 2 (forwarded zone/click value)
  * No other macro is ever substituted.
  */
 export const PAID_TRAFFIC_MACRO_TID = '{tid}';
 export const PAID_TRAFFIC_MACRO_AFF_ID = '{aff_id}';
 export const PAID_TRAFFIC_MACRO_OFFER_ID = '{offerid}';
+export const PAID_TRAFFIC_MACRO_AFF_SUB2 = '{aff_sub2}';
 
 export interface PaidTrafficConfig {
   name: string;
@@ -44,6 +47,7 @@ export interface PaidTrafficParams {
   tid: string | null;
   affid: string | null;
   offerid: string | null;
+  affSub2?: string | null;
 }
 
 export type PaidTrafficFailureReason =
@@ -55,6 +59,7 @@ export type PaidTrafficFailureReason =
   | 'missing-tid'
   | 'missing-affid'
   | 'missing-offerid'
+  | 'missing-aff-sub2'
   | 'invalid-template'
   | 'unresolved-macro'
   | 'insecure-destination';
@@ -82,12 +87,14 @@ export function readPaidTrafficParams(query: Record<string, QueryValue> | null |
   const tid = query?.[PAID_TRAFFIC_PARAMS.tid];
   const affid = query?.[PAID_TRAFFIC_PARAMS.affid];
   const offerid = query?.[PAID_TRAFFIC_PARAMS.offerid];
+  const affSub2 = query?.[PAID_TRAFFIC_PARAMS.affSub2];
 
   return {
     source: firstValue(source),
     tid: firstValue(tid),
     affid: firstValue(affid),
     offerid: firstValue(offerid),
+    affSub2: firstValue(affSub2),
   };
 }
 
@@ -131,6 +138,7 @@ export function resolvePaidTrafficDestination(input: {
   tid?: string | null;
   affid?: string | null;
   offerid?: string | null;
+  affSub2?: string | null;
 }): PaidTrafficResolution {
   const template = typeof input.template === 'string' ? input.template.trim() : '';
 
@@ -142,6 +150,7 @@ export function resolvePaidTrafficDestination(input: {
     [PAID_TRAFFIC_MACRO_TID, input.tid, 'missing-tid'],
     [PAID_TRAFFIC_MACRO_AFF_ID, input.affid, 'missing-affid'],
     [PAID_TRAFFIC_MACRO_OFFER_ID, input.offerid, 'missing-offerid'],
+    [PAID_TRAFFIC_MACRO_AFF_SUB2, input.affSub2, 'missing-aff-sub2'],
   ];
 
   let resolved = template;
@@ -214,5 +223,6 @@ export function evaluatePaidTraffic(input: {
     tid: params.tid,
     affid: params.affid,
     offerid: params.offerid,
+    affSub2: params.affSub2,
   });
 }

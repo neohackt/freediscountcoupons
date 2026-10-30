@@ -175,10 +175,12 @@ async function resolvePaidTraffic(
   const tidValues = query[PAID_TRAFFIC_PARAMS.tid];
   const affidValues = query[PAID_TRAFFIC_PARAMS.affid];
   const offeridValues = query[PAID_TRAFFIC_PARAMS.offerid];
+  const affSub2Values = query[PAID_TRAFFIC_PARAMS.affSub2];
 
   if (Array.isArray(tidValues) && tidValues.length > 1) return null;
   if (Array.isArray(affidValues) && affidValues.length > 1) return null;
   if (Array.isArray(offeridValues) && offeridValues.length > 1) return null;
+  if (Array.isArray(affSub2Values) && affSub2Values.length > 1) return null;
 
   if (!isPaidTrafficSource(params.source)) return null;
 

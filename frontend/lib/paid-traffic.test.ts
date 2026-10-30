@@ -28,6 +28,21 @@ function check(actual: unknown, expected: unknown, description: string) {
 const TEMPLATE_A = 'https://brand-a.example.net/track?o=22027551&a=30610&clickid={tid}&aff={aff_id}';
 const TEMPLATE_B = 'https://brand-b.example.org/go/{tid}?o=111&a=222&offer={offerid}';
 
+const TEMPLATE_SUB2 = 'https://brand-c.example.net/track?subId1={tid}&subId2={aff_sub2}';
+const TEMPLATE_TEMU_STYLE = 'https://merchant.example/campaign?subId1={tid}&subId2={aff_sub2}&o=22081881&a=7124';
+const TEMPLATE_ARBITRARY_SUB2 = 'https://example.com/campaign?subId1={tid}&subId2={aff_sub2}';
+
+const storeC: PaidTrafficConfig = {
+  name: 'Synthetic Store C',
+  slug: 'synthetic-store-c',
+  paid_traffic_enabled: true,
+  paid_traffic_sources: ['paid'],
+  paid_traffic_tracking_url: TEMPLATE_SUB2,
+};
+
+const AFF_SUB2 = 'zone-42';
+const AFF_SUB2_SPECIAL = 'a b&c=d?e#f';
+
 const storeA: PaidTrafficConfig = {
   name: 'Synthetic Store A',
   slug: 'synthetic-store-a',
@@ -448,6 +463,163 @@ function testFailClosed() {
   check(emptySourcesWithUrl.ok ? emptySourcesWithUrl.destination : emptySourcesWithUrl.reason, 'source-not-allowed', '60. empty sources (with URL) → source-not-allowed (no redirect)');
 }
 
+function testAffSub2() {
+  console.log('\\n--- aff_sub2 macro support ---');
+
+  // 1. Read fdc_aff_sub2 from incoming query parameters
+  const readParams = readPaidTrafficParams({
+    fdc_source: 'paid',
+    fdc_tid: TID,
+    fdc_affid: AFFID,
+    fdc_offerid: OFFERID,
+    fdc_aff_sub2: AFF_SUB2,
+  });
+  check(readParams.affSub2, AFF_SUB2, '61. fdc_aff_sub2 is read from query parameters');
+
+  const readMissing = readPaidTrafficParams({
+    fdc_source: 'paid',
+    fdc_tid: TID,
+  });
+  check(readMissing.affSub2, null, '62. missing fdc_aff_sub2 resolves to null');
+
+  const readArray = readPaidTrafficParams({
+    fdc_aff_sub2: [AFF_SUB2, 'ignored'],
+  });
+  check(readArray.affSub2, AFF_SUB2, '63. duplicate fdc_aff_sub2 keeps the first value');
+
+  // 2. Resolve {aff_sub2} correctly
+  const resolved = resolvePaidTrafficDestination({
+    template: TEMPLATE_SUB2,
+    tid: TID,
+    affid: AFFID,
+    offerid: OFFERID,
+    affSub2: AFF_SUB2,
+  });
+  check(
+    resolved.ok ? resolved.destination : resolved.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2=${AFF_SUB2}`,
+    '64. {aff_sub2} resolves to the incoming zone value'
+  );
+
+  // 3. URL encoding of special characters
+  const encoded = resolvePaidTrafficDestination({
+    template: 'https://brand-c.example.net/track?subId2={aff_sub2}',
+    affSub2: AFF_SUB2_SPECIAL,
+  });
+  check(
+    encoded.ok ? encoded.destination : encoded.reason,
+    'https://brand-c.example.net/track?subId2=a%20b%26c%3Dd%3Fe%23f',
+    '65. {aff_sub2} values are URL-encoded'
+  );
+
+  // 4. Template without {aff_sub2} does not require it
+  const notRequired = resolvePaidTrafficDestination({
+    template: 'https://brand-a.example.net/track?clickid={tid}',
+    tid: TID,
+    affSub2: null,
+  });
+  check(
+    notRequired.ok ? notRequired.destination : notRequired.reason,
+    'https://brand-a.example.net/track?clickid=O18ABC789',
+    '66. {aff_sub2} is optional when the template does not use it'
+  );
+
+  // 5. Template with {aff_sub2} fails when missing
+  const missing = resolvePaidTrafficDestination({
+    template: TEMPLATE_SUB2,
+    tid: TID,
+    affSub2: null,
+  });
+  check(
+    missing.ok ? missing.destination : missing.reason,
+    'missing-aff-sub2',
+    '67. missing {aff_sub2} is rejected distinctly'
+  );
+
+  // 6. Empty aff_sub2 fails safely
+  const empty = resolvePaidTrafficDestination({
+    template: TEMPLATE_SUB2,
+    tid: TID,
+    affSub2: '   ',
+  });
+  check(
+    empty.ok ? empty.destination : empty.reason,
+    'missing-aff-sub2',
+    '68. empty {aff_sub2} is rejected'
+  );
+
+  // 7. Unsupported macros are still rejected
+  const unsupported = resolvePaidTrafficDestination({
+    template: 'https://brand-c.example.net/track?subId1={tid}&subId2={aff_sub2}&ip={ip}',
+    tid: TID,
+    affSub2: AFF_SUB2,
+  });
+  check(
+    unsupported.ok ? unsupported.destination : unsupported.reason,
+    'unresolved-macro',
+    '69. unsupported macros remain rejected with {aff_sub2} present'
+  );
+
+  // 8. Existing macros remain unchanged
+  const existing = resolvePaidTrafficDestination({
+    template: TEMPLATE_A,
+    tid: TID,
+    affid: AFFID,
+    offerid: OFFERID,
+    affSub2: AFF_SUB2,
+  });
+  check(
+    existing.ok ? existing.destination : existing.reason,
+    `https://brand-a.example.net/track?o=22027551&a=30610&clickid=${TID}&aff=${AFFID}`,
+    '70. adding affSub2 does not alter existing macro resolution'
+  );
+
+  // 9. Temu-style tracking URL resolves correctly
+  const temu = resolvePaidTrafficDestination({
+    template: TEMPLATE_TEMU_STYLE,
+    tid: TID,
+    affSub2: AFF_SUB2,
+  });
+  check(
+    temu.ok ? temu.destination : temu.reason,
+    `https://merchant.example/campaign?subId1=${TID}&subId2=${AFF_SUB2}&o=22081881&a=7124`,
+    '71. Temu-style tracking URL resolves with {tid} and {aff_sub2}'
+  );
+
+  // 10. Arbitrary store configuration can use {aff_sub2}
+  const arbitrary = resolvePaidTrafficDestination({
+    template: TEMPLATE_ARBITRARY_SUB2,
+    tid: TID,
+    affSub2: AFF_SUB2,
+  });
+  check(
+    arbitrary.ok ? arbitrary.destination : arbitrary.reason,
+    `https://example.com/campaign?subId1=${TID}&subId2=${AFF_SUB2}`,
+    '72. arbitrary store configuration can use {aff_sub2}'
+  );
+
+  // evaluatePaidTraffic passes affSub2 through
+  const evaluated = evaluatePaidTraffic({
+    config: storeC,
+    params: { source: 'paid', tid: TID, affid: AFFID, offerid: OFFERID, affSub2: AFF_SUB2 },
+  });
+  check(
+    evaluated.ok ? evaluated.destination : evaluated.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2=${AFF_SUB2}`,
+    '73. evaluatePaidTraffic resolves {aff_sub2}'
+  );
+
+  const evaluatedMissing = evaluatePaidTraffic({
+    config: storeC,
+    params: { source: 'paid', tid: TID, affid: AFFID, offerid: OFFERID, affSub2: null },
+  });
+  check(
+    evaluatedMissing.ok ? evaluatedMissing.destination : evaluatedMissing.reason,
+    'missing-aff-sub2',
+    '74. evaluatePaidTraffic rejects missing required {aff_sub2}'
+  );
+}
+
 function main() {
   console.log('=== paid-traffic Tests ===');
   testSourceDetection();
@@ -455,6 +627,7 @@ function main() {
   testEvaluation();
   testReferrerPath();
   testFailClosed();
+  testAffSub2();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }
