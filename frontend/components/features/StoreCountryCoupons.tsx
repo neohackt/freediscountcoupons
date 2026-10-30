@@ -145,9 +145,9 @@ const SELECTOR_UNSELECTED_CLASSES =
   'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:text-blue-600';
 
 // Read the selection from the URL hash (case-insensitive).
-// Returns 'ALL' (null → default), 'GLOBAL', or a market code.
+// Returns 'GLOBAL' or a market code, or null for missing/invalid hashes.
 // Client-only: call exclusively from effects and event handlers.
-export function parseHashCountry(markets: CountryMarket[]): 'ALL' | 'GLOBAL' | string | null {
+export function parseHashCountry(markets: CountryMarket[]): 'GLOBAL' | string | null {
   const raw = window.location.hash.replace(/^#/, '').trim().toUpperCase();
   if (!raw) return null;
   if (raw === 'GLOBAL') return 'GLOBAL';
@@ -159,7 +159,7 @@ export function parseHashCountry(markets: CountryMarket[]): 'ALL' | 'GLOBAL' | s
 // Skips the write when the hash already matches to avoid duplicate entries.
 function writeHash(code: string) {
   const current = window.location.hash.replace(/^#/, '').toUpperCase();
-  const next = code === 'ALL' ? '' : code.toUpperCase();
+  const next = code.toUpperCase();
   if (current === next) return;
   const url = new URL(window.location.href);
   url.hash = next;
@@ -171,7 +171,7 @@ function writeHash(code: string) {
 // exits the page instead of landing on the same page without a hash.
 function writeHashReplace(code: string) {
   const url = new URL(window.location.href);
-  url.hash = code === 'ALL' ? '' : code.toUpperCase();
+  url.hash = code.toUpperCase();
   window.history.replaceState(null, '', url.toString());
 }
 
@@ -184,15 +184,18 @@ export function StoreCountryCoupons({
   initialRegular,
   initialExpired,
 }: StoreCountryCouponsProps) {
-  // Selection state: 'ALL' | 'GLOBAL' | country code (e.g. 'JP')
-  const [selected, setSelected] = useState<'ALL' | 'GLOBAL' | string>('ALL');
+  // Selection state: 'GLOBAL' | country code (e.g. 'JP'). No ALL mode.
+  const [selected, setSelected] = useState<'GLOBAL' | string>('GLOBAL');
+  // fetched is null until the first scoped request completes.
+  // Display source uses fetched results only — never the unfiltered
+  // initial arrays — to prevent exposing coupons from all countries.
   const [fetched, setFetched] = useState<Coupon[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const seqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   // Mirror of `selected` for use inside listeners (avoids stale closures).
-  const selectedRef = useRef<'ALL' | 'GLOBAL' | string>('ALL');
+  const selectedRef = useRef<'GLOBAL' | string>('GLOBAL');
 
   // Preserve the Store page's coupon ordering: the filtered set is a subset
   // of the initial list, so re-sort fetched coupons by their position in the
@@ -211,18 +214,8 @@ export function StoreCountryCoupons({
   // paths (popstate, hashchange) never write, which makes feedback loops
   // impossible (pushState fires no events).
   const loadSelection = useCallback(
-    async (mode: 'ALL' | 'GLOBAL' | string, hash: 'push' | 'replace' | 'silent') => {
+    async (mode: 'GLOBAL' | string, hash: 'push' | 'replace' | 'silent') => {
       abortRef.current?.abort();
-      if (mode === 'ALL') {
-        selectedRef.current = 'ALL';
-        setSelected('ALL');
-        setFetched(null);
-        setError(null);
-        setLoading(false);
-        if (hash === 'push') writeHash('ALL');
-        else if (hash === 'replace') writeHashReplace('ALL');
-        return;
-      }
       const seq = ++seqRef.current;
       const controller = new AbortController();
       abortRef.current = controller;
@@ -237,12 +230,11 @@ export function StoreCountryCoupons({
         if (mode === 'GLOBAL') {
           rows = await fetchGlobalCoupons(storeSlug, controller.signal);
           // Global view: the API already returned only Global coupons
-          // (empty countries relation). Do not apply isTargetedTo here —
-          // that would remove the very coupons we want to show.
+          // (empty countries relation). Do not apply isTargetedTo here.
         } else {
           rows = await fetchCountryCoupons(storeSlug, mode, controller.signal);
           // Country view: keep coupons explicitly targeted to the selected
-          // country; drop GLOBAL coupons (countries empty) and other countries.
+          // country; drop GLOBAL coupons and other countries.
           rows = rows.filter((row) => isTargetedTo(row, mode));
         }
         if (seqRef.current !== seq) return;
@@ -264,17 +256,16 @@ export function StoreCountryCoupons({
   );
 
   const selectMode = useCallback(
-    (mode: 'ALL' | 'GLOBAL' | string) => loadSelection(mode, 'push'),
+    (mode: 'GLOBAL' | string) => loadSelection(mode, 'push'),
     [loadSelection]
   );
 
   // Initial-selection priority after hydration (server and first client render
-  // both stay ALL — no hydration mismatch):
-  //   1. explicit URL hash (unchanged Phase 7 behavior, no history write),
-  //   2. server-detected CF-IPCountry (hash written via replaceState: no new
-  //      history entry, so Back still exits the page),
-  //   3. All (default).
-  // Priority is final: hash → CF-IPCountry → All.
+  // both stay in loading state — no hydration mismatch):
+  //   1. explicit URL hash (#GLOBAL or #XX),
+  //   2. server-detected CF-IPCountry (hash written via replaceState),
+  //   3. Global (default, no hash written).
+  // Priority is final: hash → CF-IPCountry → Global.
   const detectedRef = useRef<string | null>(detectedCountry ?? null);
   detectedRef.current = detectedCountry ?? null;
   const marketsRef = useRef(markets);
@@ -282,20 +273,19 @@ export function StoreCountryCoupons({
   useEffect(() => {
     const hashCode = parseHashCountry(marketsRef.current);
     if (hashCode) {
-      const mode: 'ALL' | 'GLOBAL' | string = hashCode === 'ALL' ? 'ALL' : hashCode;
-      if (mode !== selectedRef.current) {
-        void loadSelection(mode, 'silent');
-      }
+      void loadSelection(hashCode, 'silent');
       return;
     }
     const detected = detectedRef.current;
     if (
       detected &&
-      detected !== selectedRef.current &&
       marketsRef.current.some((m) => m.code === detected)
     ) {
       void loadSelection(detected, 'replace');
+      return;
     }
+    // Default: Global
+    void loadSelection('GLOBAL', 'silent');
     // Mount-only reconciliation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -305,7 +295,7 @@ export function StoreCountryCoupons({
   useEffect(() => {
     const syncFromHash = () => {
       const code = parseHashCountry(marketsRef.current);
-      const next: 'ALL' | 'GLOBAL' | string = code === 'ALL' || code === null ? 'ALL' : code;
+      const next: 'GLOBAL' | string = code === null ? 'GLOBAL' : code;
       if (next !== selectedRef.current) {
         void loadSelection(next, 'silent');
       }
@@ -320,10 +310,10 @@ export function StoreCountryCoupons({
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const isFiltered = selected !== 'ALL' && fetched !== null;
-  const source: Coupon[] = isFiltered && fetched
-    ? fetched
-    : [...initialVerified, ...initialRegular, ...initialExpired];
+  // Display source uses fetched scoped results only — never the unfiltered
+  // initial arrays — to prevent exposing coupons from all countries.
+  const isFiltered = fetched !== null;
+  const source: Coupon[] = isFiltered && fetched ? fetched : [];
   const verified = source.filter((c: Coupon) => !c.is_expired && c.verified);
   const regular = source.filter((c: Coupon) => !c.is_expired && !c.verified);
   const expired = source.filter((c: Coupon) => c.is_expired);
@@ -334,15 +324,6 @@ export function StoreCountryCoupons({
   const selector = (
     <div className="mb-6" role="group" aria-label={`Filter ${storeName} coupons by country`}>
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        <button
-          type="button"
-          onClick={() => selectMode('ALL')}
-          aria-pressed={selected === 'ALL'}
-          aria-label={`Show all ${storeName} coupons`}
-          className={`${SELECTOR_BASE_CLASSES} ${selected === 'ALL' ? SELECTOR_SELECTED_CLASSES : SELECTOR_UNSELECTED_CLASSES}`}
-        >
-          <span aria-hidden="true">🌎</span> All
-        </button>
         <button
           type="button"
           onClick={() => selectMode('GLOBAL')}

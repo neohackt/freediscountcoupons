@@ -350,8 +350,7 @@ export default async function StorePage({
     flag: m.flag,
     couponCount: m.couponCount,
   }));
-  const showCountrySelector =
-    marketsData?.hasMultipleCountries === true && sanitizedMarkets.length >= 2;
+  const showCountrySelector = sanitizedMarkets.length >= 1;
 
   // Phase 8: Cloudflare country detection. Read server-side from the
   // CF-IPCountry request header; normalize to uppercase ISO alpha-2 and keep

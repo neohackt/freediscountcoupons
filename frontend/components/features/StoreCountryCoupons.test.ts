@@ -102,7 +102,7 @@ async function testParseHashCountry() {
   ];
 
   withHash('', () => {
-    check(parseHashCountry(markets), null, 'empty hash → null (All)');
+    check(parseHashCountry(markets), null, 'empty hash → null (default logic)');
   });
 
   withHash('#JP', () => {
@@ -142,12 +142,30 @@ async function testIsTargetedTo() {
   check(isTargetedTo(clCoupon, 'JP'), false, 'CL coupon not targeted to JP');
 }
 
+async function testNoAllMode() {
+  console.log('\n--- No ALL mode ---');
+
+  // Verify that parseHashCountry never returns 'ALL'
+  const markets = [
+    { code: 'JP', name: 'Japan', flag: '🇯🇵', couponCount: 5 },
+  ];
+  withHash('', () => {
+    const result = parseHashCountry(markets);
+    check(result === null, true, 'empty hash → null (not ALL)');
+  });
+  withHash('#ALL', () => {
+    const result = parseHashCountry(markets);
+    check(result === null, true, '#ALL → null (ALL not a valid selection)');
+  });
+}
+
 async function main() {
   console.log('=== StoreCountryCoupons selector tests ===');
   await testFetchCountryCouponsUrl();
   await testFetchGlobalCouponsUrl();
   await testParseHashCountry();
   await testIsTargetedTo();
+  await testNoAllMode();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }
