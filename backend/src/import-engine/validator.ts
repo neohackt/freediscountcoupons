@@ -318,9 +318,7 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
   }
 
   const parsedCountries = parseCountryCodes(data.country_codes);
-  if (parsedCountries === 'GLOBAL') {
-    result.country_codes = 'GLOBAL';
-  } else if (parsedCountries !== undefined) {
+  if (parsedCountries !== undefined) {
     result.country_codes = parsedCountries.join(',');
   }
 
@@ -329,16 +327,16 @@ export function normalizeCouponData(data: Record<string, unknown>): CouponData {
 
 /**
  * Normalize a country_codes CSV value.
- * - undefined/null/blank → undefined (unspecified)
- * - "GLOBAL" (case-insensitive, trimmed) → "GLOBAL"
+ * - undefined/null/blank → undefined (unspecified / Global)
  * - otherwise → deduplicated uppercase ISO codes, order preserved
+ *   Invalid codes are NOT special-cased here: they pass through for
+ *   Strapi resolution to reject (row-level error).
  */
-export function parseCountryCodes(value: unknown): string[] | 'GLOBAL' | undefined {
+export function parseCountryCodes(value: unknown): string[] | undefined {
   if (value === undefined || value === null) return undefined;
 
   const trimmed = String(value).trim();
   if (trimmed === '') return undefined;
-  if (trimmed.toUpperCase() === 'GLOBAL') return 'GLOBAL';
 
   const codes: string[] = [];
   const seen = new Set<string>();

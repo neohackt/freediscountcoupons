@@ -47,9 +47,8 @@ function buildWhere(filters: any): any {
 /**
  * Normalize an optional `country` query parameter to an ISO 3166-1 alpha-2 code.
  * - missing/blank/malformed → undefined (no country filtering)
- * - otherwise trimmed + uppercased (e.g. "us" → "US", " US " → "US")
- * Unknown-but-wellformed codes (e.g. "ZZ") are returned as-is: they match no
- * country-specific coupons, so only GLOBAL coupons remain eligible.
+ * - valid 2-letter format → trimmed + uppercased (e.g. "us" → "US", " US " → "US")
+ *   The caller must validate existence against the Country collection.
  */
 export function normalizeCountryParam(value: unknown): string | undefined {
   if (value === undefined || value === null) return undefined;
@@ -60,11 +59,25 @@ export function normalizeCountryParam(value: unknown): string | undefined {
 }
 
 /**
- * Additively apply country filtering to an existing coupon where clause.
+ * Normalize an optional `scope` query parameter.
+ * - missing/blank → undefined (no scope filter)
+ * - 'global' (case-insensitive) → 'global'
+ * - anything else → throws Error (caller converts to HTTP 400)
+ */
+export function normalizeScopeParam(value: unknown): 'global' | undefined {
+  if (value === undefined || value === null) return undefined;
+  const scope = Array.isArray(value) ? String(value[0] ?? '') : String(value);
+  const normalized = scope.trim().toLowerCase();
+  if (normalized === '') return undefined;
+  if (normalized === 'global') return 'global';
+  throw new Error(`Invalid scope: "${scope}". Supported values: global`);
+}
+
+/**
+ * Add strict country filtering to an existing coupon where clause.
  * - no code → base where is returned unchanged
- * - with code → GLOBAL coupons (empty countries relation) OR coupons whose
- *   countries relation contains the requested code, AND-composed with the
- *   existing filters so store/expiry/featured conditions still apply.
+ * - with code → only coupons whose countries relation contains the requested
+ *   code match. Global coupons (empty countries relation) are excluded.
  */
 export function withCountryFilter(baseWhere: any, countryCode: string | undefined): any {
   if (!countryCode) return baseWhere;
@@ -72,10 +85,30 @@ export function withCountryFilter(baseWhere: any, countryCode: string | undefine
     $and: [
       baseWhere,
       {
-        $or: [
-          { countries: { code: { $eq: countryCode } } },
-          { countries: { id: { $null: true } } },
-        ],
+        countries: {
+          code: {
+            $eq: countryCode,
+          },
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * Add explicit Global filtering to an existing coupon where clause.
+ * Global means the coupon has no associated Country records.
+ */
+export function withGlobalFilter(baseWhere: any): any {
+  return {
+    $and: [
+      baseWhere,
+      {
+        countries: {
+          id: {
+            $null: true,
+          },
+        },
       },
     ],
   };
@@ -106,10 +139,52 @@ export const COUPON_LIST_POPULATE = {
 export default factories.createCoreController('api::coupon.coupon', ({ strapi }) => ({
   async find(ctx) {
     const filters = buildWhere(ctx.query?.filters);
-    // Optional country-aware filtering (GLOBAL + requested country).
-    // Applied to the shared where clause so it composes with existing
-    // filters AND is respected by both findMany and count (pagination).
-    const where = withCountryFilter(filters, normalizeCountryParam(ctx.query?.country));
+
+    // Parse and validate country + scope parameters.
+    const countryRaw = ctx.query?.country;
+    const countryParam = normalizeCountryParam(countryRaw);
+
+    // A provided country that fails normalization (malformed) is invalid → 400.
+    if (
+      countryRaw !== undefined &&
+      countryRaw !== null &&
+      String(countryRaw).trim() !== '' &&
+      countryParam === undefined
+    ) {
+      ctx.throw(400, `Invalid country: "${countryRaw}". Must be a valid ISO 3166-1 alpha-2 code.`);
+    }
+
+    let scope: 'global' | undefined;
+    try {
+      scope = normalizeScopeParam(ctx.query?.scope);
+    } catch (error) {
+      ctx.throw(400, error instanceof Error ? error.message : 'Invalid scope parameter.');
+    }
+
+    // Reject conflicting country + global scope.
+    if (countryParam && scope === 'global') {
+      ctx.throw(400, 'Cannot combine country and scope=global parameters.');
+    }
+
+    let where = filters;
+
+    // Validate country existence against the Country collection, then apply strict filter.
+    if (countryParam) {
+      const countries = await strapi.documents('api::country.country').findMany({
+        filters: { code: { $eq: countryParam } },
+        status: 'published',
+      });
+      if (!Array.isArray(countries) || countries.length === 0) {
+        ctx.throw(400, `Country not found: ${countryParam}`);
+      }
+      where = withCountryFilter(where, countryParam);
+    }
+
+    // Apply Global filter (empty countries relation).
+    if (scope === 'global') {
+      where = withGlobalFilter(where);
+    }
+
     const sort = buildSort(ctx.query?.sort);
     const pagination = ctx.query?.pagination as any || {};
     const page = parseInt(String(pagination.page), 10) || 1;

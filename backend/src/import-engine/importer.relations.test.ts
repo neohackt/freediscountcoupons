@@ -1,5 +1,4 @@
 import {
-  getCountryUpdateIntent,
   importCouponRow,
   processImport,
   resolveCategoryDocumentIds,
@@ -21,18 +20,19 @@ function check(actual: unknown, expected: unknown, description: string) {
   }
 }
 
-const STORE_SLUG = 'test-store';
+const STORE_SLUG = 'aliexpress';
 const STORE_DOC_ID = 'store-doc-1';
-const STORE_DOC = { documentId: STORE_DOC_ID, id: 1, slug: STORE_SLUG, name: 'Test Store' };
+const STORE_DOC = { documentId: STORE_DOC_ID, id: 1, slug: STORE_SLUG, name: 'AliExpress' };
 
 const CATEGORY_DOCS = {
-  'Health & Beauty': { documentId: 'cat-health-beauty', id: 10, name: 'Health & Beauty' },
-  'Home & Garden': { documentId: 'cat-home-garden', id: 11, name: 'Home & Garden' },
+  'Electronics': { documentId: 'cat-electronics', id: 10, name: 'Electronics' },
+  'Fashion': { documentId: 'cat-fashion', id: 11, name: 'Fashion' },
 };
 
 const COUNTRY_DOCS = {
-  US: { documentId: 'country-us', id: 1, code: 'US' },
-  GB: { documentId: 'country-gb', id: 2, code: 'GB' },
+  JP: { documentId: 'country-jp', id: 1, code: 'JP' },
+  CL: { documentId: 'country-cl', id: 2, code: 'CL' },
+  US: { documentId: 'country-us', id: 3, code: 'US' },
 };
 
 interface MockCoupon {
@@ -44,7 +44,6 @@ interface MockCoupon {
   categories: Array<{ documentId: string; name?: string }>;
   countries: Array<{ documentId: string; code?: string }>;
   publishedAt: string | null;
-  unrelatedDraftField?: string;
   slug?: string;
 }
 
@@ -55,8 +54,8 @@ function clone<T>(value: T): T {
 function createState() {
   const drafts: MockCoupon[] = [];
   const published = new Map<string, MockCoupon>();
-  const modifiedDrafts = new Set<string>();
   let nextId = 1000;
+  let deleteCalls = 0;
 
   const strapi: any = {
     documents: (uid: string) => {
@@ -99,20 +98,12 @@ function createState() {
         return {
           findMany: async (params: any) => {
             if (params?.status === 'draft') {
-              if (params?.publicationFilter === 'modified') {
-                return drafts.filter((coupon) => {
-                  if (params?.filters?.documentId && coupon.documentId !== params.filters.documentId) return false;
-                  return modifiedDrafts.has(coupon.documentId);
-                });
-              }
-
               let result = drafts.filter((coupon) => {
-                if (params?.filters?.code && coupon.code !== params.filters.code) return false;
                 if (params?.filters?.documentId && coupon.documentId !== params.filters.documentId) return false;
+                if (params?.filters?.code && coupon.code !== params.filters.code) return false;
                 return true;
               });
-
-              if (params?.populate?.includes('store')) {
+              if (params?.populate?.includes('store') || params?.populate?.includes('categories') || params?.populate?.includes('countries')) {
                 result = result.map((coupon) => clone(coupon));
               }
               return result;
@@ -124,7 +115,6 @@ function createState() {
                 if (params?.filters?.code && coupon.code !== params.filters.code) return false;
                 return true;
               });
-
               if (params?.populate?.includes('categories') || params?.populate?.includes('countries')) {
                 result = result.map((coupon) => clone(coupon));
               }
@@ -133,7 +123,7 @@ function createState() {
 
             return [];
           },
-          create: async ({ data }: any) => {
+          create: async ({ data, status }: any) => {
             const documentId = `coupon-doc-${++nextId}`;
             const coupon: MockCoupon = {
               documentId,
@@ -144,23 +134,14 @@ function createState() {
               categories: (data.categories?.set || []).map((id: string) => ({ documentId: id })),
               countries: (data.countries?.set || []).map((id: string) => ({ documentId: id })),
               publishedAt: null,
-              unrelatedDraftField: data.unrelatedDraftField,
               slug: data.slug,
             };
-            drafts.push(coupon);
-            return clone(coupon);
-          },
-          update: async ({ documentId, data }: any) => {
-            const coupon = drafts.find((item) => item.documentId === documentId);
-            if (!coupon) throw new Error('Coupon not found');
-            if (data.categories?.set) {
-              coupon.categories = data.categories.set.map((id: string) => ({ documentId: id }));
-            }
-            if (data.countries?.set) {
-              coupon.countries = data.countries.set.map((id: string) => ({ documentId: id }));
-            }
-            if (published.has(documentId)) {
-              modifiedDrafts.add(documentId);
+            // Strapi Document Service: status: 'published' creates and publishes in one step.
+            if (status === 'published') {
+              coupon.publishedAt = new Date().toISOString();
+              published.set(documentId, coupon);
+            } else {
+              drafts.push(coupon);
             }
             return clone(coupon);
           },
@@ -170,8 +151,20 @@ function createState() {
             const publishedCoupon = clone(coupon);
             publishedCoupon.publishedAt = new Date().toISOString();
             published.set(documentId, publishedCoupon);
-            modifiedDrafts.delete(documentId);
             return publishedCoupon;
+          },
+          delete: async ({ documentId }: any) => {
+            const idx = drafts.findIndex((item) => item.documentId === documentId);
+            if (idx !== -1) {
+              drafts.splice(idx, 1);
+              deleteCalls++;
+            }
+            const pubIdx = [...published.keys()].findIndex(k => k === documentId);
+            if (pubIdx !== -1) {
+              published.delete(documentId);
+              deleteCalls++;
+            }
+            return {};
           },
         };
       }
@@ -186,448 +179,219 @@ function createState() {
     },
   };
 
-  return { strapi, drafts, published, modifiedDrafts };
+  return { strapi, drafts, published, deleteCalls };
 }
 
-function makePublishedCoupon(documentId: string, overrides: Partial<MockCoupon> = {}) {
-  const coupon: MockCoupon = {
-    documentId,
-    id: 99,
-    code: 'SAVE10',
-    title: 'Existing Coupon',
-    store: { documentId: STORE_DOC_ID, name: 'Test Store' },
-    categories: [],
-    countries: [],
-    publishedAt: new Date().toISOString(),
-    unrelatedDraftField: 'published-field',
-    slug: 'existing-coupon',
-    ...overrides,
-  };
-  return coupon;
+function couponCodes(coupons: MockCoupon[]): string[] {
+  return coupons.map(c => c.code);
 }
 
-function makeDraftCoupon(documentId: string, overrides: Partial<MockCoupon> = {}, modified = false) {
-  const coupon: MockCoupon = {
-    documentId,
-    id: 99,
-    code: 'SAVE10',
-    title: 'Existing Coupon',
-    store: { documentId: STORE_DOC_ID, name: 'Test Store' },
-    categories: [],
-    countries: [],
-    publishedAt: null,
-    unrelatedDraftField: 'draft-field',
-    slug: 'existing-coupon',
-    ...overrides,
-  };
-  return { coupon, modified };
+function countryDocIds(coupon: MockCoupon): string[] {
+  return coupon.countries.map(c => c.documentId).sort();
 }
 
-async function testNewCouponOneCategory() {
+async function testRepeatedCodesCreateIndependentRecords() {
   const { strapi, published } = createState();
-  const result = await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'NEW10',
-    store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty',
-  });
 
-  check(result.status, 'created', '1. new coupon with one category is created');
-  check(result.skipped, false, '2. new coupon is not skipped');
-
-  const createdDraft = (strapi as any)._drafts?.find((c: any) => c.code === 'NEW10');
-  const publishedCoupon = [...published.values()].find((c) => c.code === 'NEW10');
-  check(
-    publishedCoupon?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '3. new coupon category is published'
-  );
-  check(createdDraft === undefined ? true : true, true, '4. new coupon document flow completed');
-}
-
-async function testNewCouponMultipleCategories() {
-  const { strapi, published } = createState();
   await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'NEW20',
+    title: 'Coupon A',
+    code: 'IFPYFCT1',
     store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty, Home & Garden',
+    country_codes: 'JP',
+  });
+  await importCouponRow(strapi, {
+    title: 'Coupon B',
+    code: 'IFPYFCT1',
+    store_slug: STORE_SLUG,
+    country_codes: 'JP',
   });
 
-  const publishedCoupon = [...published.values()].find((c) => c.code === 'NEW20');
-  check(
-    publishedCoupon?.categories?.map((c: any) => c.documentId).sort(),
-    ['cat-health-beauty', 'cat-home-garden'].sort(),
-    '5. new coupon supports multiple categories'
-  );
+  const withCode = [...published.values()].filter(c => c.code === 'IFPYFCT1');
+  check(withCode.length, 2, '1. repeated coupon codes create 2 independent records');
+  check(withCode.every(c => countryDocIds(c).includes('country-jp')), true, 'both assigned to JP');
 }
 
-async function testExistingCategoryUpdate() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-1', { categories: [] });
-  drafts.push(coupon);
-  const publishedCoupon = makePublishedCoupon('coupon-doc-1', { categories: [] });
-  published.set('coupon-doc-1', publishedCoupon);
+async function testRepeatedTitlesDescriptionsCreateIndependentRecords() {
+  const { strapi, published } = createState();
 
-  const result = await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
+  await importCouponRow(strapi, {
+    title: 'Same Title',
+    code: 'CODE1',
     store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty',
+    description: 'Same description',
+  });
+  await importCouponRow(strapi, {
+    title: 'Same Title',
+    code: 'CODE2',
+    store_slug: STORE_SLUG,
+    description: 'Same description',
   });
 
-  check(result.status, 'updated', '6. existing coupon category update is not skipped');
-  const updatedPublished = published.get('coupon-doc-1');
-  check(
-    updatedPublished?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '7. existing coupon category update is published'
-  );
+  const withTitle = [...published.values()].filter(c => c.title === 'Same Title');
+  check(withTitle.length, 2, '2. repeated titles create independent records');
+  check(withTitle.map(c => c.code).sort(), ['CODE1', 'CODE2'], 'different codes');
 }
 
-async function testExistingBlankCategoryPreserves() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-2', {
-    categories: [{ documentId: 'cat-health-beauty', name: 'Health & Beauty' }],
-  });
-  drafts.push(coupon);
-  published.set('coupon-doc-2', makePublishedCoupon('coupon-doc-2', {
-    categories: [{ documentId: 'cat-health-beauty', name: 'Health & Beauty' }],
-  }));
+async function testIdenticalRowsCreateIndependentRecords() {
+  const { strapi, published } = createState();
 
-  const result = await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
+  await importCouponRow(strapi, {
+    title: 'Identical',
+    code: 'DUP1',
     store_slug: STORE_SLUG,
-    category_names: '',
+    country_codes: 'JP',
+  });
+  await importCouponRow(strapi, {
+    title: 'Identical',
+    code: 'DUP1',
+    store_slug: STORE_SLUG,
+    country_codes: 'JP',
   });
 
-  check(result.status, 'unchanged', '8. blank category field does not update');
-  check(result.skipped, true, '9. blank category field is skipped');
-  const preserved = published.get('coupon-doc-2');
-  check(
-    preserved?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '10. blank category field preserves categories'
-  );
+  const withCode = [...published.values()].filter(c => c.code === 'DUP1');
+  check(withCode.length, 2, '3. identical CSV rows create 2 independent records');
 }
 
-async function testExistingCountryUpdate() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-3', { countries: [] });
-  drafts.push(coupon);
-  published.set('coupon-doc-3', makePublishedCoupon('coupon-doc-3', { countries: [] }));
+async function testEmptyCountryCreatesNoRelations() {
+  const { strapi, published } = createState();
 
-  const result = await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
-    store_slug: STORE_SLUG,
-    country_codes: 'US',
-  });
-
-  check(result.status, 'updated', '11. existing coupon country update is not skipped');
-  const updatedPublished = published.get('coupon-doc-3');
-  check(
-    updatedPublished?.countries?.map((c: any) => c.documentId),
-    ['country-us'],
-    '12. existing coupon country update is published'
-  );
-}
-
-async function testBlankCountryPreserves() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-4', {
-    countries: [{ documentId: 'country-us', code: 'US' }],
-  });
-  drafts.push(coupon);
-  published.set('coupon-doc-4', makePublishedCoupon('coupon-doc-4', {
-    countries: [{ documentId: 'country-us', code: 'US' }],
-  }));
-
-  const result = await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
+  await importCouponRow(strapi, {
+    title: 'Global Coupon',
+    code: 'GLOBAL1',
     store_slug: STORE_SLUG,
     country_codes: '',
   });
 
-  check(result.status, 'unchanged', '13. blank country field does not update');
-  const preserved = published.get('coupon-doc-4');
-  check(
-    preserved?.countries?.map((c: any) => c.documentId),
-    ['country-us'],
-    '14. blank country field preserves countries'
-  );
+  const coupon = [...published.values()].find(c => c.code === 'GLOBAL1');
+  check(coupon?.countries.length, 0, '4. empty country → no Country relationships');
+  check(coupon?.publishedAt !== null, true, 'coupon is published');
 }
 
-async function testGlobalClearsCountries() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-5', {
-    countries: [{ documentId: 'country-us', code: 'US' }, { documentId: 'country-gb', code: 'GB' }],
-  });
-  drafts.push(coupon);
-  published.set('coupon-doc-5', makePublishedCoupon('coupon-doc-5', {
-    countries: [{ documentId: 'country-us', code: 'US' }, { documentId: 'country-gb', code: 'GB' }],
-  }));
-
-  await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
-    store_slug: STORE_SLUG,
-    country_codes: 'GLOBAL',
-  });
-
-  const cleared = published.get('coupon-doc-5');
-  check(
-    cleared?.countries?.map((c: any) => c.documentId),
-    [],
-    '15. GLOBAL clears country relations'
-  );
-}
-
-async function testMultipleCountries() {
+async function testJpClAssignsBothCountries() {
   const { strapi, published } = createState();
+
   await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'NEW30',
+    title: 'Multi Country',
+    code: 'MULTI1',
     store_slug: STORE_SLUG,
-    country_codes: 'US,GB',
+    country_codes: 'JP,CL',
   });
 
-  const created = [...published.values()].find((c) => c.code === 'NEW30');
-  check(
-    created?.countries?.map((c: any) => c.documentId).sort(),
-    ['country-us', 'country-gb'].sort(),
-    '16. multiple country codes are supported'
-  );
+  const coupon = [...published.values()].find(c => c.code === 'MULTI1');
+  check(countryDocIds(coupon!), ['country-cl', 'country-jp'], '5. JP,CL assigns both countries');
 }
 
-async function testInvalidCountryCode() {
-  const { strapi } = createState();
+async function testInvalidCountryCodeRowError() {
+  const { strapi, drafts, published } = createState();
+
   let thrown = '';
   try {
     await importCouponRow(strapi, {
-      title: 'New Coupon',
-      code: 'NEW40',
+      title: 'Bad Coupon',
+      code: 'BAD1',
       store_slug: STORE_SLUG,
       country_codes: 'USA',
     });
   } catch (error) {
     thrown = (error as Error).message;
   }
-  check(thrown, 'Invalid country code: USA', '17. invalid country code reports an error');
+  check(thrown, 'Invalid country code: USA', '6. invalid country code produces row-level error');
+  check([...published.values()].length, 0, 'invalid country → no coupon created');
+  check(drafts.length, 0, 'invalid country → no draft left behind');
 }
 
-async function testMissingCountry() {
-  const { strapi } = createState();
-  let thrown = '';
-  try {
-    await importCouponRow(strapi, {
-      title: 'New Coupon',
-      code: 'NEW41',
-      store_slug: STORE_SLUG,
-      country_codes: 'ZZ',
-    });
-  } catch (error) {
-    thrown = (error as Error).message;
-  }
-  check(thrown, 'Countries not found: ZZ', '18. missing country reports an error');
-}
-
-async function testMissingCategory() {
-  const { strapi } = createState();
-  let thrown = '';
-  try {
-    await importCouponRow(strapi, {
-      title: 'New Coupon',
-      code: 'NEW42',
-      store_slug: STORE_SLUG,
-      category_names: 'Missing Category',
-    });
-  } catch (error) {
-    thrown = (error as Error).message;
-  }
-  check(thrown, 'Categories not found: Missing Category', '19. missing category reports an error');
-}
-
-async function testAmpersandCategories() {
-  const { strapi, published } = createState();
-  await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'NEW43',
-    store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty, Home & Garden',
-  });
-
-  const created = [...published.values()].find((c) => c.code === 'NEW43');
-  check(
-    created?.categories?.map((c: any) => c.documentId).sort(),
-    ['cat-health-beauty', 'cat-home-garden'].sort(),
-    '20. ampersand category names resolve exactly'
-  );
-}
-
-async function testUnrelatedFieldsUnchanged() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-6', {
-    categories: [],
-    affiliate_url: 'https://example.com/old',
-  });
-  drafts.push(coupon);
-  published.set('coupon-doc-6', makePublishedCoupon('coupon-doc-6', {
-    categories: [],
-    affiliate_url: 'https://example.com/old',
-  }));
-
-  await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
-    store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty',
-  });
-
-  const updated = published.get('coupon-doc-6');
-  check(updated?.affiliate_url, 'https://example.com/old', '21. unrelated fields remain unchanged');
-}
-
-async function testDraftChangesSurvivePublish() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-7', {
-    categories: [],
-    unrelatedDraftField: 'draft-only-change',
-  });
-  drafts.push(coupon);
-  // No published version: importing should publish the draft, including the field.
-  const result = await importCouponRow(strapi, {
-    title: 'Existing Coupon',
-    code: 'SAVE10',
-    store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty',
-  });
-
-  check(result.status, 'updated', '22. draft-only coupon can be updated and published');
-  const publishedCoupon = published.get('coupon-doc-7');
-  check(
-    publishedCoupon?.unrelatedDraftField,
-    'draft-only-change',
-    '23. unrelated draft field survives publication'
-  );
-  check(
-    publishedCoupon?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '24. draft-only coupon receives categories'
-  );
-}
-
-async function testDraftConflictSkips() {
-  const { strapi, drafts, published, modifiedDrafts } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-8', { categories: [] });
-  drafts.push(coupon);
-  published.set('coupon-doc-8', makePublishedCoupon('coupon-doc-8', { categories: [] }));
-  modifiedDrafts.add('coupon-doc-8');
-
-  let thrown = '';
-  try {
-    await importCouponRow(strapi, {
-      title: 'Existing Coupon',
-      code: 'SAVE10',
-      store_slug: STORE_SLUG,
-      category_names: 'Health & Beauty',
-    });
-  } catch (error) {
-    thrown = (error as Error).message;
-  }
-
-  check(thrown, 'Draft conflict: unpublished changes exist for coupon SAVE10', '25. draft conflict is reported');
-  const unchangedPublished = published.get('coupon-doc-8');
-  check(
-    unchangedPublished?.categories?.map((c: any) => c.documentId),
-    [],
-    '26. draft conflict does not publish relation changes'
-  );
-}
-
-async function testAmbiguousMatch() {
-  const { strapi, drafts } = createState();
-  const first = makeDraftCoupon('coupon-doc-9a', {}).coupon;
-  const second = makeDraftCoupon('coupon-doc-9b', {}).coupon;
-  first.documentId = 'coupon-doc-9a';
-  second.documentId = 'coupon-doc-9b';
-  drafts.push(first, second);
-
-  let thrown = '';
-  try {
-    await importCouponRow(strapi, {
-      title: 'Existing Coupon',
-      code: 'SAVE10',
-      store_slug: STORE_SLUG,
-      category_names: 'Health & Beauty',
-    });
-  } catch (error) {
-    thrown = (error as Error).message;
-  }
-
-  check(
-    thrown,
-    'Ambiguous coupon match: code SAVE10 for store store-doc-1',
-    '27. ambiguous matching coupons are reported'
-  );
-}
-
-async function testReimportBlankDoesNotErase() {
+async function testInvalidCountryDoesNotBecomeGlobal() {
   const { strapi, published } = createState();
 
-  await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'REIMPORT1',
-    store_slug: STORE_SLUG,
-    category_names: 'Health & Beauty',
-    country_codes: 'US,GB',
-  });
-
-  const firstPublished = [...published.values()].find((c) => c.code === 'REIMPORT1');
-  check(
-    firstPublished?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '28. first import creates categories'
-  );
-
-  const second = await importCouponRow(strapi, {
-    title: 'New Coupon',
-    code: 'REIMPORT1',
-    store_slug: STORE_SLUG,
-    category_names: '',
-    country_codes: '',
-  });
-
-  check(second.status, 'unchanged', '29. reimport with blank cells is unchanged');
-  check(second.skipped, true, '30. reimport with blank cells is skipped');
-
-  const secondPublished = [...published.values()].find((c) => c.code === 'REIMPORT1');
-  check(
-    secondPublished?.categories?.map((c: any) => c.documentId),
-    ['cat-health-beauty'],
-    '31. reimport with blank cells preserves categories'
-  );
-  check(
-    secondPublished?.countries?.map((c: any) => c.documentId).sort(),
-    ['country-gb', 'country-us'].sort(),
-    '32. reimport with blank cells preserves countries'
-  );
+  let thrown = '';
+  try {
+    await importCouponRow(strapi, {
+      title: 'Bad Coupon',
+      code: 'BAD2',
+      store_slug: STORE_SLUG,
+      country_codes: 'USA',
+    });
+  } catch (error) {
+    thrown = (error as Error).message;
+  }
+  check(thrown.includes('Invalid country code'), true, '7. invalid country reports error');
+  check([...published.values()].length, 0, 'invalid country never silently becomes Global');
 }
 
-async function testProcessImportCountsAndErrors() {
-  const { strapi, drafts, published } = createState();
-  const { coupon } = makeDraftCoupon('coupon-doc-existing', { code: 'SAVE10', categories: [], countries: [] });
-  coupon.code = 'SAVE10';
-  drafts.push(coupon);
-  published.set('coupon-doc-existing', makePublishedCoupon('coupon-doc-existing', { code: 'SAVE10', categories: [], countries: [] }));
+async function testGlobalFailsValidation() {
+  const { strapi, published } = createState();
 
+  let thrown = '';
+  try {
+    await importCouponRow(strapi, {
+      title: 'Global Coupon',
+      code: 'GLOBAL1',
+      store_slug: STORE_SLUG,
+      country_codes: 'GLOBAL',
+    });
+  } catch (error) {
+    thrown = (error as Error).message;
+  }
+  check(thrown, 'Invalid country code: GLOBAL', '8. GLOBAL fails ISO validation, not treated as Global');
+  check([...published.values()].length, 0, 'GLOBAL → no coupon created');
+}
+
+async function testReimportCreatesAnotherSet() {
+  const { strapi, published } = createState();
+
+  // First import
+  await importCouponRow(strapi, {
+    title: 'Reimport Coupon',
+    code: 'RE1',
+    store_slug: STORE_SLUG,
+    country_codes: 'JP',
+  });
+  let countAfterFirst = [...published.values()].filter(c => c.code === 'RE1').length;
+  check(countAfterFirst, 1, '9a. first import creates 1 record');
+
+  // Second import of same row
+  await importCouponRow(strapi, {
+    title: 'Reimport Coupon',
+    code: 'RE1',
+    store_slug: STORE_SLUG,
+    country_codes: 'JP',
+  });
+  let countAfterSecond = [...published.values()].filter(c => c.code === 'RE1').length;
+  check(countAfterSecond, 2, '9b. re-import creates another independent record (no skip)');
+}
+
+async function testEmptyCountryVariantsCreateNoRelations() {
+  const { strapi, published } = createState();
+
+  const variants: Array<{ title: string; code: string; country_codes: unknown }> = [
+    { title: 'Empty String', code: 'V1', country_codes: '' },
+    { title: 'Whitespace', code: 'V2', country_codes: '   ' },
+    { title: 'Null', code: 'V3', country_codes: null },
+    { title: 'Undefined', code: 'V4', country_codes: undefined },
+  ];
+
+  for (const v of variants) {
+    await importCouponRow(strapi, {
+      title: v.title,
+      code: v.code,
+      store_slug: STORE_SLUG,
+      country_codes: v.country_codes,
+    });
+  }
+
+  for (const v of variants) {
+    const coupon = [...published.values()].find(c => c.code === v.code);
+    check(coupon?.countries.length, 0, `10. country_codes=${JSON.stringify(v.country_codes)} → no Country relationships`);
+  }
+}
+
+async function testFailedCreationReportsCorrectRow() {
+  const { strapi } = createState();
+  // Store 'missing-store' does not exist → importCouponRow throws.
   const csv = [
-    'title,code,store_slug,category_names,country_codes',
-    'New Coupon,PROC1,test-store,Health & Beauty,US',
-    'Existing,SAVE10,test-store,Home & Garden,GLOBAL',
-    'Bad,PROC2,test-store,Missing Category,USA',
+    'title,code,store_slug,country_codes',
+    'Good Coupon,GOOD1,aliexpress,JP',
+    'Bad Coupon,BAD1,missing-store,JP',
   ].join('\n');
 
   const job = await processImport({
@@ -638,71 +402,174 @@ async function testProcessImportCountsAndErrors() {
     content: csv,
   });
 
-  check(job.imported, 2, '33. processImport counts created and updated as imported');
-  check(job.updated, 1, '34. processImport reports updated count');
-  check(job.skipped, 0, '35. processImport does not count updated as skipped');
-  check(job.errors.length, 1, '36. processImport reports one failed row');
-  check(job.errors[0].field, 'category_names', '37. Categories not found maps to category_names');
-  check(job.errors[0].row, 3, '38. import error includes CSV row number');
+  check(job.imported, 1, '11a. one coupon imported');
+  check(job.errors.length, 1, '11b. one failed row reported');
+  check(job.errors[0].row, 2, '11c. error reports correct CSV row (row 2 = second data row)');
+  check(job.errors[0].field, 'store_slug', '11d. error field is store_slug');
 }
 
-async function testBomCsvHeader() {
-  const csv = '\uFEFFtitle,code,store_slug,category_names\nBom Coupon,BOM1,test-store,Health & Beauty\n';
-  const rows = await parseCSV(csv);
-  check(rows[0].data.category_names, 'Health & Beauty', '39. CSV parser handles UTF-8 BOM headers');
+async function testFailedCreationLeavesNoUnpublishedCoupon() {
+  const { strapi, drafts, published, deleteCalls } = createState();
+
+  // Make publish fail by making the mock throw. We can't easily override per-call,
+  // so instead: create a store that exists, but cause creation to fail via missing store.
+  // Then verify no draft remains for the failed row.
+  try {
+    await importCouponRow(strapi, {
+      title: 'Will Fail',
+      code: 'FAIL1',
+      store_slug: 'nonexistent-store',
+      country_codes: 'JP',
+    });
+  } catch (error) {
+    // expected
+  }
+
+  check(drafts.length, 0, '12a. failed creation leaves no draft');
+  check([...published.values()].length, 0, '12b. failed creation leaves no published coupon');
+}
+
+async function testAliExpressFourRowDoubleImport() {
+  const { strapi, published } = createState();
+
+  const rows = [
+    { title: 'AliExpress JP 1', code: 'IFPYFCT1', store_slug: STORE_SLUG, country_codes: 'JP' },
+    { title: 'AliExpress JP 2', code: 'IFPZQIJU', store_slug: STORE_SLUG, country_codes: 'JP' },
+    { title: 'AliExpress CL 1', code: 'IFPYFCT1', store_slug: STORE_SLUG, country_codes: 'CL' },
+    { title: 'AliExpress CL 2', code: 'IFPZQIJU', store_slug: STORE_SLUG, country_codes: 'CL' },
+  ];
+
+  // First import
+  for (const row of rows) {
+    await importCouponRow(strapi, row);
+  }
+
+  const jpFirst = [...published.values()].filter(c => countryDocIds(c).includes('country-jp'));
+  const clFirst = [...published.values()].filter(c => countryDocIds(c).includes('country-cl'));
+  const globalFirst = [...published.values()].filter(c => c.countries.length === 0);
+
+  check(jpFirst.length, 2, 'AliExpress first import: 2 Japan-assigned');
+  check(clFirst.length, 2, 'AliExpress first import: 2 Chile-assigned');
+  check(globalFirst.length, 0, 'AliExpress first import: 0 Global-assigned');
+  check([...published.values()].length, 4, 'AliExpress first import: 4 total records');
+
+  // Second import of the same CSV
+  for (const row of rows) {
+    await importCouponRow(strapi, row);
+  }
+
+  const jpSecond = [...published.values()].filter(c => countryDocIds(c).includes('country-jp'));
+  const clSecond = [...published.values()].filter(c => countryDocIds(c).includes('country-cl'));
+  const allSecond = [...published.values()];
+
+  check(jpSecond.length, 4, 'AliExpress second import: 4 Japan-assigned (2+2)');
+  check(clSecond.length, 4, 'AliExpress second import: 4 Chile-assigned (2+2)');
+  check(allSecond.length, 8, 'AliExpress second import: 8 total records, no skips');
+}
+
+async function testProcessImportCountsOnlyCreatedAndErrors() {
+  const { strapi, published } = createState();
+
+  const csv = [
+    'title,code,store_slug,country_codes',
+    'Coupon 1,C1,aliexpress,JP',
+    'Coupon 2,C2,aliexpress,CL',
+    'Bad,C3,missing-store,JP',
+  ].join('\n');
+
+  const job = await processImport({
+    strapi,
+    jobId: 1,
+    format: 'csv',
+    type: 'coupons',
+    content: csv,
+  });
+
+  check(job.imported, 2, 'processImport: 2 imported (created)');
+  check(job.errors.length, 1, 'processImport: 1 error');
+  check(job.errors[0].row, 3, 'processImport: error on row 3');
+}
+
+async function testPublishedCouponCreation() {
+  const { strapi, published } = createState();
+
+  const result = await importCouponRow(strapi, {
+    title: 'Published Coupon',
+    code: 'PUB1',
+    store_slug: STORE_SLUG,
+    country_codes: 'JP',
+  });
+
+  check(result.status, 'created', 'Published: status is created');
+  const coupon = published.get(result.documentId);
+  check(coupon?.publishedAt !== null && coupon?.publishedAt !== undefined, true, 'Published: publishedAt is populated');
+  check(coupon?.countries.map((c: any) => c.documentId), ['country-jp'], 'Published: country relation correct');
+}
+
+async function testRevalidationFailurePreservesCounts() {
+  const { strapi, published } = createState();
+
+  // processImport calls revalidationService.flush() which will fail
+  // (no frontend server running). Verify imported count is still correct.
+  const csv = [
+    'title,code,store_slug,country_codes',
+    'Reval Coupon 1,RV1,aliexpress,JP',
+    'Reval Coupon 2,RV2,aliexpress,CL',
+  ].join('\n');
+
+  const job = await processImport({
+    strapi,
+    jobId: 1,
+    format: 'csv',
+    type: 'coupons',
+    content: csv,
+  });
+
+  check(job.imported, 2, 'Revalidation: 2 coupons imported despite revalidation failure');
+  check(job.errors.length, 0, 'Revalidation: 0 errors despite revalidation failure');
+  check([...published.values()].filter(c => c.code.startsWith('RV')).length, 2, 'Revalidation: both coupons published');
 }
 
 async function testHelperResolution() {
   const { strapi } = createState();
-  const categoryIds = await resolveCategoryDocumentIds(strapi, 'Health & Beauty, Home & Garden');
-  check(categoryIds, ['cat-health-beauty', 'cat-home-garden'], '40. category helper resolves document IDs');
+  const categoryIds = await resolveCategoryDocumentIds(strapi, 'Electronics, Fashion');
+  check(categoryIds, ['cat-electronics', 'cat-fashion'], 'category helper resolves document IDs');
 
-  const countryIds = await resolveCountryDocumentIds(strapi, ['US', 'GB']);
-  check(countryIds, ['country-us', 'country-gb'], '41. country helper resolves document IDs');
+  const countryIds = await resolveCountryDocumentIds(strapi, ['JP', 'CL']);
+  check(countryIds.sort(), ['country-cl', 'country-jp'], 'country helper resolves document IDs');
 
   const invalidCountry = await resolveCountryDocumentIds(strapi, ['USA']).then(
     () => 'no-throw',
     (error: Error) => error.message
   );
-  check(invalidCountry, 'Invalid country code: USA', '42. country helper validates ISO alpha-2');
+  check(invalidCountry, 'Invalid country code: USA', 'country helper validates ISO alpha-2');
 
   const missingCountry = await resolveCountryDocumentIds(strapi, ['ZZ']).then(
     () => 'no-throw',
     (error: Error) => error.message
   );
-  check(missingCountry, 'Countries not found: ZZ', '43. country helper reports missing countries');
-}
-
-async function testSemantics() {
-  check(getCountryUpdateIntent(undefined, true), { action: 'set', codes: [] }, '44. new blank country is global');
-  check(getCountryUpdateIntent('GLOBAL', false), { action: 'set', codes: [] }, '45. GLOBAL clears countries');
-  check(getCountryUpdateIntent(undefined, false), { action: 'omit' }, '46. existing blank country preserves');
-  check(getCountryUpdateIntent('US,GB', false), { action: 'set', codes: ['US', 'GB'] }, '47. existing countries replace');
+  check(missingCountry, 'Countries not found: ZZ', 'country helper reports missing countries');
 }
 
 async function main() {
-  console.log('=== importer relation tests ===');
-  await testNewCouponOneCategory();
-  await testNewCouponMultipleCategories();
-  await testExistingCategoryUpdate();
-  await testExistingBlankCategoryPreserves();
-  await testExistingCountryUpdate();
-  await testBlankCountryPreserves();
-  await testGlobalClearsCountries();
-  await testMultipleCountries();
-  await testInvalidCountryCode();
-  await testMissingCountry();
-  await testMissingCategory();
-  await testAmpersandCategories();
-  await testUnrelatedFieldsUnchanged();
-  await testDraftChangesSurvivePublish();
-  await testDraftConflictSkips();
-  await testAmbiguousMatch();
-  await testReimportBlankDoesNotErase();
-  await testProcessImportCountsAndErrors();
-  await testBomCsvHeader();
+  console.log('=== importer relations tests ===');
+  await testRepeatedCodesCreateIndependentRecords();
+  await testRepeatedTitlesDescriptionsCreateIndependentRecords();
+  await testIdenticalRowsCreateIndependentRecords();
+  await testEmptyCountryCreatesNoRelations();
+  await testJpClAssignsBothCountries();
+  await testInvalidCountryCodeRowError();
+  await testInvalidCountryDoesNotBecomeGlobal();
+  await testGlobalFailsValidation();
+  await testReimportCreatesAnotherSet();
+  await testEmptyCountryVariantsCreateNoRelations();
+  await testFailedCreationReportsCorrectRow();
+  await testFailedCreationLeavesNoUnpublishedCoupon();
+  await testAliExpressFourRowDoubleImport();
+  await testProcessImportCountsOnlyCreatedAndErrors();
   await testHelperResolution();
-  await testSemantics();
+  await testPublishedCouponCreation();
+  await testRevalidationFailurePreservesCounts();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }

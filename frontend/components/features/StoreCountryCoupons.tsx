@@ -63,14 +63,14 @@ type CouponWithCountries = Coupon & {
 // A coupon is targeted to a country only if its actual countries relation
 // contains that code (normalized). Global means countries is empty/null —
 // never inferred by comparing responses across markets.
-function isTargetedTo(coupon: CouponWithCountries, country: string): boolean {
+export function isTargetedTo(coupon: CouponWithCountries, country: string): boolean {
   const codes = coupon.countries ?? [];
   return codes.some((c) => c.code?.toUpperCase() === country);
 }
 
 // Fetch every page for a store + country combination so large stores are
-// never silently truncated at the API page size.
-async function fetchCountryCoupons(
+// never silently truncated at the API page size. Sends `country=XX`.
+export async function fetchCountryCoupons(
   storeSlug: string,
   country: string,
   signal: AbortSignal
@@ -103,18 +103,54 @@ async function fetchCountryCoupons(
   return all;
 }
 
+// Fetch every page of Global coupons for a store. Sends `scope=global` and
+// no country parameter. The API already filters to coupons with no Country
+// relationships, so no client-side isTargetedTo filtering is applied here.
+export async function fetchGlobalCoupons(
+  storeSlug: string,
+  signal: AbortSignal
+): Promise<CouponWithCountries[]> {
+  const all: CouponWithCountries[] = [];
+  let page = 1;
+  let total: number | null = null;
+
+  for (;;) {
+    const url =
+      `${STRAPI_URL}/api/coupons?filters[store][slug][$eq]=${encodeURIComponent(storeSlug)}` +
+      `&scope=global&pagination[page]=${page}&pagination[pageSize]=${PAGE_SIZE}`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) {
+      throw new Error(`Coupon request failed (${res.status})`);
+    }
+    const body = (await res.json()) as CouponListResponse;
+    const rows: CouponWithCountries[] = Array.isArray(body.data)
+      ? (body.data as CouponWithCountries[])
+      : [];
+    all.push(...rows);
+    if (total === null) {
+      const t = body.meta?.pagination?.total;
+      total = typeof t === 'number' ? t : rows.length;
+    }
+    if (all.length >= (total ?? 0) || rows.length === 0) break;
+    page += 1;
+  }
+
+  return all;
+}
+
 const SELECTOR_BASE_CLASSES =
   'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1';
 const SELECTOR_SELECTED_CLASSES = 'bg-blue-600 text-white border-blue-600';
 const SELECTOR_UNSELECTED_CLASSES =
   'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:text-blue-600';
 
-// Read the country selection from the URL hash (case-insensitive).
-// Returns the market code, or null for missing/invalid hashes (→ All).
+// Read the selection from the URL hash (case-insensitive).
+// Returns 'ALL' (null → default), 'GLOBAL', or a market code.
 // Client-only: call exclusively from effects and event handlers.
-function parseHashCountry(markets: CountryMarket[]): string | null {
+export function parseHashCountry(markets: CountryMarket[]): 'ALL' | 'GLOBAL' | string | null {
   const raw = window.location.hash.replace(/^#/, '').trim().toUpperCase();
   if (!raw) return null;
+  if (raw === 'GLOBAL') return 'GLOBAL';
   return markets.some((m) => m.code === raw) ? raw : null;
 }
 
@@ -148,19 +184,19 @@ export function StoreCountryCoupons({
   initialRegular,
   initialExpired,
 }: StoreCountryCouponsProps) {
-  const [selected, setSelected] = useState<string>('ALL');
+  // Selection state: 'ALL' | 'GLOBAL' | country code (e.g. 'JP')
+  const [selected, setSelected] = useState<'ALL' | 'GLOBAL' | string>('ALL');
   const [fetched, setFetched] = useState<Coupon[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   // Mirror of `selected` for use inside listeners (avoids stale closures).
-  // Every selection change flows through loadCountry below.
-  const selectedRef = useRef<string>('ALL');
+  const selectedRef = useRef<'ALL' | 'GLOBAL' | string>('ALL');
 
-  // Preserve the Store page's coupon ordering: the country-filtered set is a
-  // subset of the initial list, so re-sort fetched coupons by their position
-  // in the initial server-rendered order.
+  // Preserve the Store page's coupon ordering: the filtered set is a subset
+  // of the initial list, so re-sort fetched coupons by their position in the
+  // initial server-rendered order.
   const orderMap = useMemo(() => {
     const map = new Map<string, number>();
     [...initialVerified, ...initialRegular, ...initialExpired].forEach((c, i) => {
@@ -174,10 +210,10 @@ export function StoreCountryCoupons({
   // history entry; mount auto-selection replaces (no new entry); hash-sync
   // paths (popstate, hashchange) never write, which makes feedback loops
   // impossible (pushState fires no events).
-  const loadCountry = useCallback(
-    async (code: string, hash: 'push' | 'replace' | 'silent') => {
+  const loadSelection = useCallback(
+    async (mode: 'ALL' | 'GLOBAL' | string, hash: 'push' | 'replace' | 'silent') => {
       abortRef.current?.abort();
-      if (code === 'ALL') {
+      if (mode === 'ALL') {
         selectedRef.current = 'ALL';
         setSelected('ALL');
         setFetched(null);
@@ -190,19 +226,27 @@ export function StoreCountryCoupons({
       const seq = ++seqRef.current;
       const controller = new AbortController();
       abortRef.current = controller;
-      selectedRef.current = code;
-      setSelected(code);
+      selectedRef.current = mode;
+      setSelected(mode);
       setError(null);
       setLoading(true);
-      if (hash === 'push') writeHash(code);
-      else if (hash === 'replace') writeHashReplace(code);
+      if (hash === 'push') writeHash(mode);
+      else if (hash === 'replace') writeHashReplace(mode);
       try {
-        const rows = await fetchCountryCoupons(storeSlug, code, controller.signal);
+        let rows: CouponWithCountries[];
+        if (mode === 'GLOBAL') {
+          rows = await fetchGlobalCoupons(storeSlug, controller.signal);
+          // Global view: the API already returned only Global coupons
+          // (empty countries relation). Do not apply isTargetedTo here —
+          // that would remove the very coupons we want to show.
+        } else {
+          rows = await fetchCountryCoupons(storeSlug, mode, controller.signal);
+          // Country view: keep coupons explicitly targeted to the selected
+          // country; drop GLOBAL coupons (countries empty) and other countries.
+          rows = rows.filter((row) => isTargetedTo(row, mode));
+        }
         if (seqRef.current !== seq) return;
-        // Country-only view: keep coupons explicitly targeted to the selected
-        // country; drop GLOBAL coupons (countries empty) and other countries.
-        const targeted = rows.filter((row) => isTargetedTo(row, code));
-        const projected = targeted.map(projectCouponForCard);
+        const projected = rows.map(projectCouponForCard);
         projected.sort((a, b) => {
           const ai = orderMap.get(a.documentId ?? String(a.id)) ?? Number.MAX_SAFE_INTEGER;
           const bi = orderMap.get(b.documentId ?? String(b.id)) ?? Number.MAX_SAFE_INTEGER;
@@ -219,9 +263,9 @@ export function StoreCountryCoupons({
     [storeSlug, orderMap]
   );
 
-  const selectCountry = useCallback(
-    (code: string) => loadCountry(code, 'push'),
-    [loadCountry]
+  const selectMode = useCallback(
+    (mode: 'ALL' | 'GLOBAL' | string) => loadSelection(mode, 'push'),
+    [loadSelection]
   );
 
   // Initial-selection priority after hydration (server and first client render
@@ -238,8 +282,9 @@ export function StoreCountryCoupons({
   useEffect(() => {
     const hashCode = parseHashCountry(marketsRef.current);
     if (hashCode) {
-      if (hashCode !== selectedRef.current) {
-        void loadCountry(hashCode, 'silent');
+      const mode: 'ALL' | 'GLOBAL' | string = hashCode === 'ALL' ? 'ALL' : hashCode;
+      if (mode !== selectedRef.current) {
+        void loadSelection(mode, 'silent');
       }
       return;
     }
@@ -249,7 +294,7 @@ export function StoreCountryCoupons({
       detected !== selectedRef.current &&
       marketsRef.current.some((m) => m.code === detected)
     ) {
-      void loadCountry(detected, 'replace');
+      void loadSelection(detected, 'replace');
     }
     // Mount-only reconciliation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,9 +305,9 @@ export function StoreCountryCoupons({
   useEffect(() => {
     const syncFromHash = () => {
       const code = parseHashCountry(marketsRef.current);
-      const next = code ?? 'ALL';
+      const next: 'ALL' | 'GLOBAL' | string = code === 'ALL' || code === null ? 'ALL' : code;
       if (next !== selectedRef.current) {
-        void loadCountry(next, 'silent');
+        void loadSelection(next, 'silent');
       }
     };
     window.addEventListener('popstate', syncFromHash);
@@ -271,7 +316,7 @@ export function StoreCountryCoupons({
       window.removeEventListener('popstate', syncFromHash);
       window.removeEventListener('hashchange', syncFromHash);
     };
-  }, [loadCountry]);
+  }, [loadSelection]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -283,6 +328,7 @@ export function StoreCountryCoupons({
   const regular = source.filter((c: Coupon) => !c.is_expired && !c.verified);
   const expired = source.filter((c: Coupon) => c.is_expired);
   const selectedMarket = markets.find((m) => m.code === selected);
+  const isGlobal = selected === 'GLOBAL';
   const allEmpty = verified.length === 0 && regular.length === 0 && expired.length === 0;
 
   const selector = (
@@ -290,18 +336,27 @@ export function StoreCountryCoupons({
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <button
           type="button"
-          onClick={() => selectCountry('ALL')}
+          onClick={() => selectMode('ALL')}
           aria-pressed={selected === 'ALL'}
           aria-label={`Show all ${storeName} coupons`}
           className={`${SELECTOR_BASE_CLASSES} ${selected === 'ALL' ? SELECTOR_SELECTED_CLASSES : SELECTOR_UNSELECTED_CLASSES}`}
         >
           <span aria-hidden="true">🌎</span> All
         </button>
+        <button
+          type="button"
+          onClick={() => selectMode('GLOBAL')}
+          aria-pressed={isGlobal}
+          aria-label={`Show only Global ${storeName} coupons (no country restriction)`}
+          className={`${SELECTOR_BASE_CLASSES} ${isGlobal ? SELECTOR_SELECTED_CLASSES : SELECTOR_UNSELECTED_CLASSES}`}
+        >
+          <span aria-hidden="true">🌐</span> Global
+        </button>
         {markets.map((m) => (
           <button
             key={m.code}
             type="button"
-            onClick={() => selectCountry(m.code)}
+            onClick={() => selectMode(m.code)}
             aria-pressed={selected === m.code}
             aria-label={`Show ${m.name} coupons`}
             title={m.name}
@@ -325,11 +380,11 @@ export function StoreCountryCoupons({
   const errorBox = (
     <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3" role="alert">
       <p className="text-sm text-red-700 flex-1">
-        Could not load coupons{selectedMarket ? ` for ${selectedMarket.name}` : ''}. Please try again.
+        Could not load coupons{isGlobal ? ' (Global)' : selectedMarket ? ` for ${selectedMarket.name}` : ''}. Please try again.
       </p>
       <button
         type="button"
-        onClick={() => selectCountry(selected)}
+        onClick={() => selectMode(selected)}
         className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
       >
         Retry
@@ -338,9 +393,11 @@ export function StoreCountryCoupons({
   );
 
   const emptyBox = allEmpty && (
-    selected !== 'ALL' && selectedMarket ? (
+    isGlobal || selectedMarket ? (
       <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-        <p className="text-gray-500">No coupons available for {selectedMarket.name} right now.</p>
+        <p className="text-gray-500">
+          No coupons available{isGlobal ? ' with Global scope' : selectedMarket ? ` for ${selectedMarket.name}` : ''} right now.
+        </p>
       </div>
     ) : (
       <div className="text-center py-12 bg-white rounded-xl border border-gray-100">

@@ -1,5 +1,5 @@
 import { parseCountryCodes, normalizeCouponData } from './validator';
-import { getCountryUpdateIntent, resolveCountryIds } from './importer';
+import { resolveCountryIds } from './importer';
 
 let failures = 0;
 
@@ -25,18 +25,19 @@ function testParse() {
     ['US', 'CA'],
     '3. parseCountryCodes("US,US,CA") → ["US", "CA"] (dedupe)'
   );
-  check(parseCountryCodes(''), undefined, '4. parseCountryCodes("") → undefined');
-  check(parseCountryCodes('   '), undefined, '5. parseCountryCodes("   ") → undefined');
-  check(parseCountryCodes('GLOBAL'), 'GLOBAL', '6. parseCountryCodes("GLOBAL") → "GLOBAL"');
-  check(parseCountryCodes(' global '), 'GLOBAL', '7. parseCountryCodes(" global ") → "GLOBAL"');
-  check(parseCountryCodes(undefined), undefined, '8. parseCountryCodes(undefined) → undefined');
-  check(parseCountryCodes(null), undefined, 'parseCountryCodes(null) → undefined');
+  check(parseCountryCodes(''), undefined, '4. parseCountryCodes("") → undefined (empty)');
+  check(parseCountryCodes('   '), undefined, '5. parseCountryCodes("   ") → undefined (whitespace)');
+  check(parseCountryCodes(undefined), undefined, '6. parseCountryCodes(undefined) → undefined');
+  check(parseCountryCodes(null), undefined, '7. parseCountryCodes(null) → undefined');
+  // GLOBAL is no longer a sentinel: it passes through as a code and fails ISO validation later.
+  check(parseCountryCodes('GLOBAL'), ['GLOBAL'], '8. parseCountryCodes("GLOBAL") → ["GLOBAL"] (no sentinel)');
+  check(parseCountryCodes(' global '), ['GLOBAL'], '9. parseCountryCodes(" global ") → ["GLOBAL"] (no sentinel)');
   // Unknown codes normalize without throwing; Strapi resolution rejects them.
-  check(parseCountryCodes('ZZ'), ['ZZ'], 'parseCountryCodes("ZZ") → ["ZZ"] (no throw)');
+  check(parseCountryCodes('ZZ'), ['ZZ'], '10. parseCountryCodes("ZZ") → ["ZZ"] (no throw)');
   check(
     parseCountryCodes(' us, ca '),
     ['US', 'CA'],
-    '10/11. parseCountryCodes(" us, ca ") → ["US", "CA"]'
+    '11. parseCountryCodes(" us, ca ") → ["US", "CA"]'
   );
 }
 
@@ -48,15 +49,16 @@ function testNormalize() {
     'US,CA',
     'normalize joins + uppercases'
   );
+  // GLOBAL is no longer preserved as a sentinel: it becomes the literal code 'GLOBAL'.
   check(
     normalizeCouponData({ country_codes: 'GLOBAL' }).country_codes,
     'GLOBAL',
-    'normalize keeps GLOBAL sentinel'
+    'normalize keeps GLOBAL as literal code (fails ISO validation later)'
   );
   check(
     normalizeCouponData({}).country_codes,
     undefined,
-    '17. no country_codes header → undefined (old CSV safe)'
+    'no country_codes header → undefined'
   );
   check(
     normalizeCouponData({ country_codes: '' }).country_codes,
@@ -94,63 +96,18 @@ async function testResolution() {
     'US,CA resolves to [1, 2]'
   );
 
-  // 9. Unknown code must throw a clear error.
+  // Unknown code must throw a clear error.
   try {
     await resolveCountryIds(mockStrapi, ['US', 'ZZ']);
     failures++;
-    console.log('✗ 9. unknown ZZ throws "Countries not found: ZZ" (did not throw)');
+    console.log('✗ unknown ZZ throws "Countries not found: ZZ" (did not throw)');
   } catch (error) {
     check(
       (error as Error).message,
       'Countries not found: ZZ',
-      '9. unknown ZZ throws "Countries not found: ZZ"'
+      'unknown ZZ throws "Countries not found: ZZ"'
     );
   }
-}
-
-function testSemantics() {
-  console.log('\n--- new/existing coupon semantics ---');
-
-  // 10/11. New coupon: blank/GLOBAL → countries []
-  check(
-    getCountryUpdateIntent(undefined, true),
-    { action: 'set', codes: [] },
-    '10. new + blank → set [] (GLOBAL)'
-  );
-  check(
-    getCountryUpdateIntent('GLOBAL', true),
-    { action: 'set', codes: [] },
-    '11. new + GLOBAL → set []'
-  );
-  // 12. New coupon + US → set [US]
-  check(
-    getCountryUpdateIntent('US', true),
-    { action: 'set', codes: ['US'] },
-    '12. new + US → set [US]'
-  );
-  // 13. Existing coupon + blank → omit (preserve)
-  check(
-    getCountryUpdateIntent(undefined, false),
-    { action: 'omit' },
-    '13. existing + blank → omit (preserve)'
-  );
-  // 14. Existing coupon + GLOBAL → clear
-  check(
-    getCountryUpdateIntent('GLOBAL', false),
-    { action: 'set', codes: [] },
-    '14. existing + GLOBAL → set [] (clear)'
-  );
-  // 15/16. Existing coupon + codes → replace
-  check(
-    getCountryUpdateIntent('US', false),
-    { action: 'set', codes: ['US'] },
-    '15. existing + US → set [US] (replace)'
-  );
-  check(
-    getCountryUpdateIntent('US,CA', false),
-    { action: 'set', codes: ['US', 'CA'] },
-    '16. existing + US,CA → set [US, CA] (replace)'
-  );
 }
 
 async function main() {
@@ -158,7 +115,6 @@ async function main() {
   testParse();
   testNormalize();
   await testResolution();
-  testSemantics();
   console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }

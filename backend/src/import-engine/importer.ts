@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import type { ParsedRow, ImportError, ImportType } from './types';
-import { normalizeStoreData, normalizeCouponData, normalizeCategoryData } from './validator';
+import { normalizeStoreData, normalizeCouponData, normalizeCategoryData, parseCountryCodes } from './validator';
 import { downloadLogo, getLogoFilename } from './logoHandler';
 import { parseFile } from './parsers';
 import { revalidationService } from '../utils/revalidation';
@@ -42,20 +42,18 @@ interface CouponDocument {
   documentId: string;
   id?: number;
   code: string;
-  slug?: string;
   store?: { documentId: string; name?: string } | null;
   categories?: Array<{ documentId: string; name?: string }>;
   countries?: Array<{ documentId: string; code?: string }>;
+  publishedAt?: string | null;
   [key: string]: unknown;
 }
 
 interface CouponImportResult {
   id: number;
   documentId: string;
-  skipped: boolean;
-  status: 'created' | 'updated' | 'unchanged';
+  status: 'created';
   storeSlug?: string;
-  slug?: string;
 }
 
 export async function findPublishedStore(strapi: StrapiType, slug: string): Promise<StoreDocument | null> {
@@ -162,69 +160,8 @@ export async function resolveCountryDocumentIds(strapi: StrapiType, codes: strin
   return normalized.map((code) => byCode.get(code) as string);
 }
 
-export type CountryUpdateIntent =
-  | { action: 'omit' }
-  | { action: 'set'; codes: string[] };
-
-export function getCountryUpdateIntent(
-  normalizedValue: string | undefined,
-  isNew: boolean
-): CountryUpdateIntent {
-  if (normalizedValue === undefined) {
-    return isNew ? { action: 'set', codes: [] } : { action: 'omit' };
-  }
-  if (normalizedValue === 'GLOBAL') {
-    return { action: 'set', codes: [] };
-  }
-  return {
-    action: 'set',
-    codes: String(normalizedValue).split(',').map((code) => code.trim()).filter(Boolean),
-  };
-}
-
 function sameDocumentIds(actual: string[], expected: string[]): boolean {
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
-}
-
-async function findExistingCoupon(
-  strapi: StrapiType,
-  code: string,
-  storeDocumentId: string
-): Promise<CouponDocument | null> {
-  const candidates = await strapi.documents('api::coupon.coupon').findMany({
-    filters: { code },
-    status: 'draft',
-    populate: ['store'],
-  });
-
-  const matches = (Array.isArray(candidates) ? candidates : []).filter((coupon: any) => {
-    return coupon?.store?.documentId === storeDocumentId;
-  }) as CouponDocument[];
-
-  if (matches.length > 1) {
-    throw new Error(`Ambiguous coupon match: code ${code} for store ${storeDocumentId}`);
-  }
-
-  return matches.length === 1 ? matches[0] : null;
-}
-
-async function hasUnpublishedDraft(strapi: StrapiType, documentId: string): Promise<boolean> {
-  const publishedVersions = await strapi.documents('api::coupon.coupon').findMany({
-    filters: { documentId },
-    status: 'published',
-  });
-
-  if (!Array.isArray(publishedVersions) || publishedVersions.length === 0) {
-    return false;
-  }
-
-  const modifiedDrafts = await strapi.documents('api::coupon.coupon').findMany({
-    filters: { documentId },
-    status: 'draft',
-    publicationFilter: 'modified',
-  });
-
-  return Array.isArray(modifiedDrafts) && modifiedDrafts.length > 0;
 }
 
 async function verifyPublishedCouponRelations(
@@ -256,6 +193,14 @@ async function verifyPublishedCouponRelations(
     if (!sameDocumentIds([...actual].sort(), [...expectedCountries].sort())) {
       throw new Error('Coupon relation update failed: country verification failed');
     }
+  }
+}
+
+async function deleteCouponDocument(strapi: StrapiType, documentId: string): Promise<void> {
+  try {
+    await strapi.documents('api::coupon.coupon').delete({ documentId });
+  } catch (e) {
+    // Best-effort cleanup; if the document was already removed, nothing to do.
   }
 }
 
@@ -402,61 +347,23 @@ export async function importCouponRow(
     ? await resolveCategoryDocumentIds(strapi, normalized.category_names || '')
     : [];
 
-  const existingCoupon = await findExistingCoupon(strapi, normalized.code, store.documentId);
-
-  const countryIntent = getCountryUpdateIntent(normalized.country_codes, !existingCoupon);
-  const countryDocumentIds =
-    countryIntent.action === 'set' && countryIntent.codes.length > 0
-      ? await resolveCountryDocumentIds(strapi, countryIntent.codes)
-      : [];
-
-  if (existingCoupon) {
-    if (await hasUnpublishedDraft(strapi, existingCoupon.documentId)) {
-      throw new Error(`Draft conflict: unpublished changes exist for coupon ${normalized.code}`);
-    }
-
-    const updateData: Record<string, unknown> = {};
-    if (hasCategories) {
-      updateData.categories = { set: categoryDocumentIds };
-    }
-    if (countryIntent.action === 'set') {
-      updateData.countries = { set: countryDocumentIds };
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      await strapi.documents('api::coupon.coupon').update({
-        documentId: existingCoupon.documentId,
-        data: updateData,
-      });
-
-      await strapi.documents('api::coupon.coupon').publish({
-        documentId: existingCoupon.documentId,
-      });
-
-      await verifyPublishedCouponRelations(
-        strapi,
-        existingCoupon.documentId,
-        hasCategories ? categoryDocumentIds : null,
-        countryIntent.action === 'set' ? countryDocumentIds : null
-      );
-    }
-
-    return {
-      id: existingCoupon.id as number,
-      documentId: existingCoupon.documentId,
-      skipped: Object.keys(updateData).length === 0,
-      status: Object.keys(updateData).length > 0 ? 'updated' : 'unchanged',
-      storeSlug: normalized.store_slug,
-      slug: existingCoupon.slug,
-    };
+  // CSV country_codes is the sole source of truth.
+  // Empty (blank/null/undefined/whitespace) → no Country relations = Global.
+  // Populated → resolve every code against published Country records.
+  let countryDocumentIds: string[] = [];
+  const countryCodes = parseCountryCodes(normalized.country_codes);
+  if (countryCodes !== undefined && countryCodes.length > 0) {
+    countryDocumentIds = await resolveCountryDocumentIds(strapi, countryCodes);
   }
 
+  // Always create a new, independent coupon record. No duplicate detection,
+  // upsert, or merge — every valid CSV row becomes its own record.
   const createData: Record<string, unknown> = {
     title: normalized.title,
     code: normalized.code,
     description: normalized.description || '',
     discount_type: normalized.discount_type || 'unknown',
-    discount_value: normalized.discount_value || null,
+    discount_value: normalized.discount_value ?? null,
     currency: normalized.currency || null,
     discount_text: normalized.discount_text || '',
     affiliate_url: normalized.affiliate_url || '',
@@ -475,28 +382,39 @@ export async function importCouponRow(
     createData.expires_at = normalized.expires_at;
   }
 
-  const created = await strapi.documents('api::coupon.coupon').create({
-    data: createData,
-  });
+  let created: any;
+  try {
+    created = await strapi.documents('api::coupon.coupon').create({
+      data: createData,
+      status: 'published',
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Coupon creation failed: ${errorMsg}`);
+  }
 
-  await strapi.documents('api::coupon.coupon').publish({
-    documentId: (created as any).documentId,
-  });
+  const createdDocumentId = (created as any).documentId;
 
-  await verifyPublishedCouponRelations(
-    strapi,
-    (created as any).documentId,
-    categoryDocumentIds,
-    countryDocumentIds
-  );
+  // Verify the coupon is published and its relations are correct.
+  try {
+    await verifyPublishedCouponRelations(
+      strapi,
+      createdDocumentId,
+      categoryDocumentIds,
+      countryDocumentIds
+    );
+  } catch (error) {
+    // Verification failed after creation: clean up the new document and report.
+    await deleteCouponDocument(strapi, createdDocumentId);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Coupon verification failed: ${errorMsg}`);
+  }
 
   return {
     id: (created as any).id as number,
-    documentId: (created as any).documentId as string,
-    skipped: false,
+    documentId: createdDocumentId as string,
     status: 'created',
     storeSlug: normalized.store_slug,
-    slug: (created as any).slug,
   };
 }
 
@@ -545,9 +463,6 @@ async function importCategoryRow(
 
 export async function processImport(context: ImportContext): Promise<{
   imported: number;
-  updated: number;
-  unchanged: number;
-  skipped: number;
   errors: ImportError[];
 }> {
   const { strapi, jobId, format, type, content, sourceUrl } = context;
@@ -582,9 +497,6 @@ export async function processImport(context: ImportContext): Promise<{
   });
 
   let imported = 0;
-  let updated = 0;
-  let unchanged = 0;
-  let skipped = 0;
   const allErrors: ImportError[] = [];
 
   const importedStores: { slug: string }[] = [];
@@ -597,33 +509,21 @@ export async function processImport(context: ImportContext): Promise<{
     try {
       if (type === 'stores') {
         const result = await importStoreRow(strapi, row.data);
-        if (result.skipped) {
-          skipped++;
-        } else {
+        if (!result.skipped) {
           imported++;
           if (result.slug) importedStores.push({ slug: result.slug });
         }
       } else if (type === 'categories') {
         const result = await importCategoryRow(strapi, row.data);
-        if (result.skipped) {
-          skipped++;
-        } else {
+        if (!result.skipped) {
           imported++;
           if (result.slug) importedCategories.push({ slug: result.slug });
         }
       } else {
         const result = await importCouponRow(strapi, row.data);
-        if (result.status === 'created') {
-          imported++;
-          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
-        } else if (result.status === 'updated') {
-          imported++;
-          updated++;
-          if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug, slug: result.slug });
-        } else {
-          skipped++;
-          unchanged++;
-        }
+        // Every successful coupon creation is a new record (no duplicates).
+        imported++;
+        if (result.storeSlug) importedCoupons.push({ storeSlug: result.storeSlug });
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -648,7 +548,7 @@ export async function processImport(context: ImportContext): Promise<{
       } else if (errorMsg.includes('discount_value')) {
         field = 'discount_value';
         message = errorMsg;
-      } else if (errorMsg.includes('Draft conflict') || errorMsg.includes('Ambiguous coupon match') || errorMsg.includes('Coupon relation update failed')) {
+      } else if (errorMsg.includes('Coupon creation failed') || errorMsg.includes('Coupon verification failed')) {
         field = 'relations';
         message = errorMsg;
       }
@@ -666,7 +566,6 @@ export async function processImport(context: ImportContext): Promise<{
         where: { id: jobId },
         data: {
           imported_count: imported,
-          skipped_count: skipped,
           error_count: allErrors.length,
         },
       });
@@ -678,7 +577,6 @@ export async function processImport(context: ImportContext): Promise<{
     data: {
       status: allErrors.length === parsedRows.length ? 'failed' : 'completed',
       imported_count: imported,
-      skipped_count: skipped,
       error_count: allErrors.length,
       errors: allErrors,
     },
@@ -697,9 +595,20 @@ export async function processImport(context: ImportContext): Promise<{
   revalidationService.addRoutes('homepage', [{}]);
   revalidationService.addRoutes('sitemap', [{}]);
 
-  await revalidationService.flush();
+  try {
+    const revalidationResult = await revalidationService.flush();
+    if (!revalidationResult.success) {
+      const failedPaths = revalidationResult.failed?.map((f) => `${f.path}: ${f.error}`).join(', ') || 'unknown';
+      console.error(`[Revalidation] Revalidation returned success=false after import. Failed routes: ${failedPaths}`);
+    }
+  } catch (revalidationError) {
+    const msg = revalidationError instanceof Error ? revalidationError.message : String(revalidationError);
+    console.error(`[Revalidation] Revalidation threw an exception after import: ${msg}`);
+    // Revalidation failure does not affect imported/error counts.
+    // The coupons were successfully created and published.
+  }
 
-  return { imported, updated, unchanged, skipped, errors: allErrors };
+  return { imported, errors: allErrors };
 }
 
 const isProvided = (v: unknown): boolean =>

@@ -64,7 +64,6 @@ export interface CategoryData {
 export interface ImportStats {
   total: number;
   imported: number;
-  skipped: number;
   errors: number;
 }
 
