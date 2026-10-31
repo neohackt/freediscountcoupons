@@ -27,21 +27,21 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Browse Categories | FreeDiscountCoupons',
     description: 'Browse coupons and deals by category. Find discounts on electronics, clothing, beauty, home goods, and more.',
-    url: `${SITE_URL}/browse`,
+    url: `${SITE_URL}/category`,
   },
   alternates: {
-    canonical: `${SITE_URL}/browse`,
+    canonical: `${SITE_URL}/category`,
   },
 };
 
-export default async function BrowsePage() {
+export default async function CategoryPage() {
   const categories = await getCategories();
 
   return (
     <>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
-          { label: 'Categories', path: '/browse' },
+          { label: 'Categories', path: '/category' },
         ])}
       />
       {categories.length > 0 && (

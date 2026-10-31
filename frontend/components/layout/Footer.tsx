@@ -117,7 +117,7 @@ export async function Footer() {
                 </>
               )}
               <li>
-                <Link href="/browse" className="text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+                <Link href="/category" className="text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
                   View all categories →
                 </Link>
               </li>

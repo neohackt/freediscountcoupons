@@ -65,14 +65,14 @@ export async function triggerRevalidation(
 
 export async function revalidateStore(slug: string): Promise<RevalidationResult> {
     return triggerRevalidation(
-        ["/", "/stores", "/browse", `/store/${slug}`, "/sitemap.xml"],
+        ["/", "/stores", "/category", `/store/${slug}`, "/sitemap.xml"],
         ["stores", "homepage"]
     );
 }
 
 export async function revalidateCoupon(storeSlug: string, couponSlug?: string): Promise<RevalidationResult> {
     return triggerRevalidation(
-        ["/", "/stores", "/browse", `/store/${storeSlug}`, couponSlug ? `/coupon/${couponSlug}` : "", "/sitemap.xml"].filter(Boolean),
+        ["/", "/stores", "/category", `/store/${storeSlug}`, couponSlug ? `/coupon/${couponSlug}` : "", "/sitemap.xml"].filter(Boolean),
         ["coupons", "stores", "homepage"]
     );
 }

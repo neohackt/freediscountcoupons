@@ -110,7 +110,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <div className="text-center py-20">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Category Not Found</h1>
           <p className="text-gray-500 mb-4">The category you&apos;re looking for doesn&apos;t exist.</p>
-          <Link href="/browse" className="text-blue-600 hover:text-blue-700">
+          <Link href="/category" className="text-blue-600 hover:text-blue-700">
             Browse all categories →
           </Link>
         </div>
@@ -124,7 +124,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     <>
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
-          { label: 'Categories', path: '/browse' },
+          { label: 'Categories', path: '/category' },
           { label: category.name, path: `/browse/${slug}` },
         ])}
       />
@@ -142,7 +142,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs
           items={[
-            { label: 'Categories', href: '/browse' },
+            { label: 'Categories', href: '/category' },
             { label: category.name },
           ]}
           className="mb-6 text-gray-700 [&_a:hover]:text-gray-900 [&_span:not(:last-child)]:text-gray-400"

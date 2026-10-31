@@ -108,7 +108,7 @@ export default async function HomePage() {
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Popular Categories</h2>
-            <a href="/browse" className="text-blue-600 hover:text-blue-700 font-medium">
+            <a href="/category" className="text-blue-600 hover:text-blue-700 font-medium">
               View all categories →
             </a>
           </div>

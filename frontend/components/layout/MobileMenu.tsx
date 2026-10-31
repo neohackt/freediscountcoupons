@@ -6,7 +6,7 @@ import type { EventNavItem } from '@/types/event';
 
 const navigation = [
   { name: 'Stores', href: '/stores' },
-  { name: 'Categories', href: '/browse' },
+  { name: 'Categories', href: '/category' },
   { name: 'Blog', href: '/blog' },
 ];
 
