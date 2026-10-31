@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'Affiliate Disclosure - FreeDiscountCoupons',
   description: 'Affiliate Disclosure for FreeDiscountCoupons.com. Learn how we earn commissions through affiliate links.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/affiliate-disclosure`,
+  },
+  openGraph: {
+    title: 'Affiliate Disclosure - FreeDiscountCoupons',
+    description: 'Affiliate Disclosure for FreeDiscountCoupons.com. Learn how we earn commissions through affiliate links.',
+    url: `${SITE_URL}/affiliate-disclosure`,
+  },
 };
 
 export default function AffiliateDisclosurePage() {

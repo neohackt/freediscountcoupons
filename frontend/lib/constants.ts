@@ -56,7 +56,7 @@ export const API_CONFIG = {
   apiToken: process.env.STRAPI_API_TOKEN || '',
 } as const;
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://freediscountcoupons.com';
 
 export const ITEMS_PER_PAGE = 24;
 export const STORES_PER_PAGE = 30;

@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'Disclaimer - FreeDiscountCoupons',
   description: 'Disclaimer for FreeDiscountCoupons.com. Read important information about coupon accuracy, affiliate links, and liability limitations.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/disclaimer`,
+  },
+  openGraph: {
+    title: 'Disclaimer - FreeDiscountCoupons',
+    description: 'Disclaimer for FreeDiscountCoupons.com. Read important information about coupon accuracy, affiliate links, and liability limitations.',
+    url: `${SITE_URL}/disclaimer`,
+  },
 };
 
 export default function DisclaimerPage() {

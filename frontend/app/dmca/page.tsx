@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'DMCA Policy - FreeDiscountCoupons',
   description: 'DMCA Policy for FreeDiscountCoupons.com. Learn about copyright protection and how to submit DMCA notices.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/dmca`,
+  },
+  openGraph: {
+    title: 'DMCA Policy - FreeDiscountCoupons',
+    description: 'DMCA Policy for FreeDiscountCoupons.com. Learn about copyright protection and how to submit DMCA notices.',
+    url: `${SITE_URL}/dmca`,
+  },
 };
 
 export default function DMCAPage() {

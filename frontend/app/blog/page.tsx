@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 import { getBlogPosts, getFeaturedPost, getBlogCategories, getTrendingPosts } from '@/lib/blog';
 import BlogPageClient from './BlogPageClient';
 
@@ -32,7 +33,10 @@ export async function generateMetadata({ searchParams }: BlogPageProps): Promise
     title,
     description,
     robots: { index: !q, follow: true },
-    openGraph: { title, description, type: 'website' },
+    alternates: {
+      canonical: `${SITE_URL}/blog`,
+    },
+    openGraph: { title, description, type: 'website', url: `${SITE_URL}/blog` },
   };
 }
 

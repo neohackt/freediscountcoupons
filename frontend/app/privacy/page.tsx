@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - FreeDiscountCoupons',
   description: 'Privacy Policy for FreeDiscountCoupons.com. Learn how we collect, use, store, and protect your information.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/privacy`,
+  },
+  openGraph: {
+    title: 'Privacy Policy - FreeDiscountCoupons',
+    description: 'Privacy Policy for FreeDiscountCoupons.com. Learn how we collect, use, store, and protect your information.',
+    url: `${SITE_URL}/privacy`,
+  },
 };
 
 export default function PrivacyPage() {

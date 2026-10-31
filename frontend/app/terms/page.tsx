@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'Terms of Use - FreeDiscountCoupons',
   description: 'Terms of Use for FreeDiscountCoupons.com. Read our terms and conditions before using the website.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/terms`,
+  },
+  openGraph: {
+    title: 'Terms of Use - FreeDiscountCoupons',
+    description: 'Terms of Use for FreeDiscountCoupons.com. Read our terms and conditions before using the website.',
+    url: `${SITE_URL}/terms`,
+  },
 };
 
 export default function TermsPage() {

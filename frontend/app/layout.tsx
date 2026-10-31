@@ -26,7 +26,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: SITE_URL,
     siteName: BRAND_CONFIG.name,
     title: BRAND_CONFIG.seo.title,
     description: BRAND_CONFIG.seo.description,
@@ -35,9 +34,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: BRAND_CONFIG.seo.title,
     description: BRAND_CONFIG.seo.description,
-  },
-  alternates: {
-    canonical: SITE_URL,
   },
   robots: {
     index: true,

@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'Contact Us - FreeDiscountCoupons',
   description: 'Contact FreeDiscountCoupons.com for questions, expired coupons, deal suggestions, merchant partnerships, and advertising inquiries.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/contact`,
+  },
+  openGraph: {
+    title: 'Contact Us - FreeDiscountCoupons',
+    description: 'Contact FreeDiscountCoupons.com for questions, expired coupons, deal suggestions, merchant partnerships, and advertising inquiries.',
+    url: `${SITE_URL}/contact`,
+  },
 };
 
 export default function ContactPage() {

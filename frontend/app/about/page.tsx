@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/strapi';
 
 export const metadata: Metadata = {
   title: 'About Us - FreeDiscountCoupons',
   description: 'Learn about FreeDiscountCoupons.com — your destination for coupon codes, promo codes, discounts, and deals from popular online stores.',
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: `${SITE_URL}/about`,
+  },
+  openGraph: {
+    title: 'About Us - FreeDiscountCoupons',
+    description: 'Learn about FreeDiscountCoupons.com — your destination for coupon codes, promo codes, discounts, and deals from popular online stores.',
+    url: `${SITE_URL}/about`,
+  },
 };
 
 export default function AboutPage() {
