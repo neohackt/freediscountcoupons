@@ -103,17 +103,17 @@ export async function Footer() {
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <li key={category.slug}>
-                    <Link href={`/browse/${category.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm">
+                    <Link href={`/category/${category.slug}`} className="text-gray-400 hover:text-white transition-colors text-sm">
                       {category.name}
                     </Link>
                   </li>
                 ))
               ) : (
                 <>
-                  <li><Link href="/browse/electronics" className="text-gray-400 hover:text-white transition-colors text-sm">Electronics</Link></li>
-                  <li><Link href="/browse/clothing" className="text-gray-400 hover:text-white transition-colors text-sm">Clothing</Link></li>
-                  <li><Link href="/browse/beauty" className="text-gray-400 hover:text-white transition-colors text-sm">Beauty</Link></li>
-                  <li><Link href="/browse/home-and-garden" className="text-gray-400 hover:text-white transition-colors text-sm">Home & Garden</Link></li>
+                  <li><Link href="/category/electronics" className="text-gray-400 hover:text-white transition-colors text-sm">Electronics</Link></li>
+                  <li><Link href="/category/clothing" className="text-gray-400 hover:text-white transition-colors text-sm">Clothing</Link></li>
+                  <li><Link href="/category/beauty" className="text-gray-400 hover:text-white transition-colors text-sm">Beauty</Link></li>
+                  <li><Link href="/category/home-and-garden" className="text-gray-400 hover:text-white transition-colors text-sm">Home & Garden</Link></li>
                 </>
               )}
               <li>

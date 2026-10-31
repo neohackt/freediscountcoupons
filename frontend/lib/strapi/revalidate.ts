@@ -79,7 +79,7 @@ export async function revalidateCoupon(storeSlug: string, couponSlug?: string): 
 
 export async function revalidateCategory(slug: string): Promise<RevalidationResult> {
     return triggerRevalidation(
-        ["/browse", `/browse/${slug}`, "/stores", "/sitemap.xml"],
+        ["/category", `/category/${slug}`, "/stores", "/sitemap.xml"],
         ["categories", "stores", "homepage"]
     );
 }

@@ -49,7 +49,7 @@ export default async function CategoryPage() {
           name="All Categories"
           items={categories.map((c: any) => ({
             name: c.name,
-            url: `/browse/${c.slug}`,
+            url: `/category/${c.slug}`,
             description: c.description,
           }))}
         />

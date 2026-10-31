@@ -66,14 +66,14 @@ async function getCouponsByCategory(categorySlug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
-  
+
   if (!category) {
     return { title: 'Category Not Found' };
   }
 
   const title = category.seo_title || `${category.name} Coupons & Deals`;
   const description = category.seo_description || `Find the best ${category.name} coupons, promo codes, and deals. Save money on ${category.name.toLowerCase()} with verified discounts at ${BRAND_CONFIG.name}.`;
-  const url = `${SITE_URL}/browse/${slug}`;
+  const url = `${SITE_URL}/category/${slug}`;
 
   return {
     title,
@@ -103,7 +103,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
-  
+
   if (!category) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -125,7 +125,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <BreadcrumbJsonLd
         items={buildBreadcrumbEntries([
           { label: 'Categories', path: '/category' },
-          { label: category.name, path: `/browse/${slug}` },
+          { label: category.name, path: `/category/${slug}` },
         ])}
       />
       {coupons.length > 0 && (

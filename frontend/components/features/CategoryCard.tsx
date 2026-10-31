@@ -24,7 +24,7 @@ export function CategoryCard({ category }: CategoryCardProps) {
   const icon = category.icon || categoryIcons[category.slug] || categoryIcons.default;
 
   return (
-    <Link href={`/browse/${category.slug}`}>
+    <Link href={`/category/${category.slug}`}>
       <Card className="hover:shadow-md transition-all hover:border-blue-200 group cursor-pointer p-6 text-center">
         <div className="text-3xl mb-2">{icon}</div>
         <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
