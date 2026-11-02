@@ -524,7 +524,7 @@ function testAffSub2() {
     '66. {aff_sub2} is optional when the template does not use it'
   );
 
-  // 5. Template with {aff_sub2} fails when missing
+  // 5. Template with {aff_sub2} preserves macro when missing (pass-through)
   const missing = resolvePaidTrafficDestination({
     template: TEMPLATE_SUB2,
     tid: TID,
@@ -532,11 +532,11 @@ function testAffSub2() {
   });
   check(
     missing.ok ? missing.destination : missing.reason,
-    'missing-aff-sub2',
-    '67. missing {aff_sub2} is rejected distinctly'
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    '67. missing {aff_sub2} preserves macro (pass-through)'
   );
 
-  // 6. Empty aff_sub2 fails safely
+  // 6. Empty aff_sub2 preserves macro (pass-through)
   const empty = resolvePaidTrafficDestination({
     template: TEMPLATE_SUB2,
     tid: TID,
@@ -544,8 +544,8 @@ function testAffSub2() {
   });
   check(
     empty.ok ? empty.destination : empty.reason,
-    'missing-aff-sub2',
-    '68. empty {aff_sub2} is rejected'
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    '68. empty {aff_sub2} preserves macro (pass-through)'
   );
 
   // 7. Unsupported macros are still rejected
@@ -615,8 +615,170 @@ function testAffSub2() {
   });
   check(
     evaluatedMissing.ok ? evaluatedMissing.destination : evaluatedMissing.reason,
-    'missing-aff-sub2',
-    '74. evaluatePaidTraffic rejects missing required {aff_sub2}'
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    '74. evaluatePaidTraffic allows missing affSub2 with pass-through'
+  );
+}
+
+function testAffSub2PassThrough() {
+  console.log('\n--- aff_sub2 pass-through ---');
+
+  const SUB2_TEMPLATE = 'https://brand-c.example.net/track?subId1={tid}&subId2={aff_sub2}';
+
+  // 1. Real value substituted correctly
+  const real = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: 'zone-42',
+  });
+  check(
+    real.ok ? real.destination : real.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2=zone-42`,
+    'PT1. real value zone-42 substituted correctly'
+  );
+
+  // 2. Literal {aff_sub2} preserved unchanged
+  const literal = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: '{aff_sub2}',
+  });
+  check(
+    literal.ok ? literal.destination : literal.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT2. literal {aff_sub2} preserved unchanged in destination'
+  );
+
+  // 3. Missing affSub2 (null) preserves {aff_sub2} and allows redirect
+  const missing = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: null,
+  });
+  check(
+    missing.ok ? missing.destination : missing.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT3. missing affSub2 preserves {aff_sub2} and allows redirect'
+  );
+
+  // 4. Null affSub2 preserves {aff_sub2} and allows redirect
+  const nullVal = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: null,
+  });
+  check(
+    nullVal.ok ? nullVal.destination : nullVal.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT4. null affSub2 preserves {aff_sub2} and allows redirect'
+  );
+
+  // 5. Empty affSub2 preserves {aff_sub2} and allows redirect
+  const empty = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: '',
+  });
+  check(
+    empty.ok ? empty.destination : empty.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT5. empty affSub2 preserves {aff_sub2} and allows redirect'
+  );
+
+  // 6. Whitespace-only affSub2 preserves {aff_sub2} and allows redirect
+  const ws = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: '   ',
+  });
+  check(
+    ws.ok ? ws.destination : ws.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT6. whitespace-only affSub2 preserves {aff_sub2} and allows redirect'
+  );
+
+  // 7. Special characters in real values remain correctly URL-encoded
+  const special = resolvePaidTrafficDestination({
+    template: SUB2_TEMPLATE,
+    tid: TID,
+    affSub2: 'a b&c=d?e#f',
+  });
+  check(
+    special.ok ? special.destination : special.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2=a%20b%26c%3Dd%3Fe%23f`,
+    'PT7. special characters in real values remain correctly URL-encoded'
+  );
+
+  // 8. Other macros retain existing behavior
+  const otherMacros = resolvePaidTrafficDestination({
+    template: 'https://example.com/track?tid={tid}&aff={aff_id}&offer={offerid}&sub={aff_sub2}',
+    tid: TID,
+    affid: AFFID,
+    offerid: OFFERID,
+    affSub2: 'zone-42',
+  });
+  check(
+    otherMacros.ok ? otherMacros.destination : otherMacros.reason,
+    `https://example.com/track?tid=${TID}&aff=${AFFID}&offer=${OFFERID}&sub=zone-42`,
+    'PT8. other macros retain existing behavior with real affSub2 value'
+  );
+
+  // 9. Other unresolved macros still fail validation
+  const unresolved = resolvePaidTrafficDestination({
+    template: 'https://example.com/track?tid={tid}&ip={ip}&sub={aff_sub2}',
+    tid: TID,
+    affSub2: 'zone-42',
+  });
+  check(
+    unresolved.ok ? unresolved.destination : unresolved.reason,
+    'unresolved-macro',
+    'PT9. other unresolved macros still fail validation'
+  );
+
+  // 10. Unsupported macro with pass-through aff_sub2 still fails
+  const unsupported = resolvePaidTrafficDestination({
+    template: 'https://example.com/track?tid={tid}&ip={ip}&sub={aff_sub2}',
+    tid: TID,
+    affSub2: '{aff_sub2}',
+  });
+  check(
+    unsupported.ok ? unsupported.destination : unsupported.reason,
+    'unresolved-macro',
+    'PT10. unsupported macros still fail even with pass-through aff_sub2'
+  );
+
+  // 11. Literal {aff_sub2} with other unresolved macros still fails
+  const literalUnresolved = resolvePaidTrafficDestination({
+    template: 'https://example.com/track?tid={tid}&ip={ip}&sub={aff_sub2}',
+    tid: TID,
+    affSub2: '{aff_sub2}',
+  });
+  check(
+    literalUnresolved.ok ? literalUnresolved.destination : literalUnresolved.reason,
+    'unresolved-macro',
+    'PT11. literal {aff_sub2} pass-through does not mask other unresolved macros'
+  );
+
+  // 12. evaluatePaidTraffic passes affSub2 through and allows pass-through
+  const evaluated = evaluatePaidTraffic({
+    config: storeC,
+    params: { source: 'paid', tid: TID, affid: AFFID, offerid: OFFERID, affSub2: '{aff_sub2}' },
+  });
+  check(
+    evaluated.ok ? evaluated.destination : evaluated.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT12. evaluatePaidTraffic allows pass-through {aff_sub2}'
+  );
+
+  // 13. evaluatePaidTraffic allows missing affSub2 with pass-through
+  const evaluatedMissing = evaluatePaidTraffic({
+    config: storeC,
+    params: { source: 'paid', tid: TID, affid: AFFID, offerid: OFFERID, affSub2: null },
+  });
+  check(
+    evaluatedMissing.ok ? evaluatedMissing.destination : evaluatedMissing.reason,
+    `https://brand-c.example.net/track?subId1=${TID}&subId2={aff_sub2}`,
+    'PT13. evaluatePaidTraffic allows missing affSub2 with pass-through'
   );
 }
 
@@ -628,7 +790,8 @@ function main() {
   testReferrerPath();
   testFailClosed();
   testAffSub2();
-  console.log(`\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
+  testAffSub2PassThrough();
+  console.log(`\\n=== Done: ${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`} ===`);
   if (failures > 0) process.exit(1);
 }
 

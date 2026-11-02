@@ -159,6 +159,14 @@ export function resolvePaidTrafficDestination(input: {
     if (!resolved.includes(macro)) continue;
 
     const raw = typeof value === 'string' ? value.trim() : '';
+
+    // aff_sub2 pass-through: when the incoming value is the literal macro
+    // '{aff_sub2}' or is missing/empty, preserve the template macro unchanged
+    // so the affiliate platform (Offer18) can replace it. Do not encode it.
+    if (macro === PAID_TRAFFIC_MACRO_AFF_SUB2 && (raw === '' || raw === '{aff_sub2}')) {
+      continue;
+    }
+
     if (!raw) {
       return { ok: false, reason };
     }
@@ -167,8 +175,10 @@ export function resolvePaidTrafficDestination(input: {
   }
 
   // Any brace left over is an unsupported or unresolved macro. It must never
-  // reach the tracking network.
-  if (resolved.includes('{') || resolved.includes('}')) {
+  // reach the tracking network. {aff_sub2} is allowed if intentionally
+  // preserved as a pass-through macro.
+  const remainingBraces = resolved.replace(/\{aff_sub2\}/g, '');
+  if (remainingBraces.includes('{') || remainingBraces.includes('}')) {
     return { ok: false, reason: 'unresolved-macro' };
   }
 
@@ -183,7 +193,8 @@ export function resolvePaidTrafficDestination(input: {
     return { ok: false, reason: 'insecure-destination' };
   }
 
-  if (url.href.includes('{') || url.href.includes('}')) {
+  const hrefWithoutAffSub2 = url.href.replace(/\{aff_sub2\}/g, '');
+  if (hrefWithoutAffSub2.includes('{') || hrefWithoutAffSub2.includes('}')) {
     return { ok: false, reason: 'unresolved-macro' };
   }
 
