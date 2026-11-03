@@ -23,13 +23,16 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
 
   // Initialize tracking from URL params and get persisted values
   initializeTracking();
-  const { gclid, keyword } = getTrackingValues();
+  const { gclid, keyword, src, camp, acc } = getTrackingValues();
 
   const couponLink = getTrackedCouponLink(
     coupon.affiliate_url,
     store?.website_url || '#',
     gclid,
-    keyword
+    keyword,
+    src,
+    camp,
+    acc
   );
 
   const hasLongDescription = (coupon.description?.length || 0) > DESCRIPTION_MAX_LENGTH;

@@ -2,6 +2,9 @@
 
 const GCLID_COOKIE = 'fdc_gclid';
 const KEYWORD_COOKIE = 'fdc_keyword';
+const SRC_COOKIE = 'fdc_src';
+const CAMP_COOKIE = 'fdc_camp';
+const ACC_COOKIE = 'fdc_acc';
 const COOKIE_EXPIRY_DAYS = 90;
 
 function isProduction(): boolean {
@@ -42,25 +45,39 @@ function getCookie(cookieName: string): string {
   return '';
 }
 
-export function getUrlParams(searchParams: URLSearchParams): { gclid: string; keyword: string } {
+export interface TrackingValues {
+  gclid: string;
+  keyword: string;
+  src: string;
+  camp: string;
+  acc: string;
+}
+
+export function getUrlParams(searchParams: URLSearchParams): TrackingValues {
   // Unified click ID: Google `gclid` takes precedence; Microsoft `msclkid`
   // fills the same field (and downstream `aff_sub1` slot) when `gclid` is absent.
   return {
     gclid: searchParams.get('gclid') || searchParams.get('msclkid') || '',
     keyword: searchParams.get('keyword') || '',
+    src: searchParams.get('src') || '',
+    camp: searchParams.get('camp') || '',
+    acc: searchParams.get('acc') || '',
   };
 }
 
-export function getStoredTracking(): { gclid: string; keyword: string } {
-  if (typeof document === 'undefined') return { gclid: '', keyword: '' };
+export function getStoredTracking(): TrackingValues {
+  if (typeof document === 'undefined') return { gclid: '', keyword: '', src: '', camp: '', acc: '' };
   
   return {
     gclid: getCookie(GCLID_COOKIE) || '',
     keyword: getCookie(KEYWORD_COOKIE) || '',
+    src: getCookie(SRC_COOKIE) || '',
+    camp: getCookie(CAMP_COOKIE) || '',
+    acc: getCookie(ACC_COOKIE) || '',
   };
 }
 
-export function getTrackingValues(searchParams?: URLSearchParams): { gclid: string; keyword: string } {
+export function getTrackingValues(searchParams?: URLSearchParams): TrackingValues {
   const stored = getStoredTracking();
   
   if (!searchParams) {
@@ -72,8 +89,11 @@ export function getTrackingValues(searchParams?: URLSearchParams): { gclid: stri
   // Use URL params if present, otherwise fall back to stored values
   const gclid = urlParams.gclid || stored.gclid;
   const keyword = urlParams.keyword || stored.keyword;
+  const src = urlParams.src || stored.src;
+  const camp = urlParams.camp || stored.camp;
+  const acc = urlParams.acc || stored.acc;
   
-  return { gclid, keyword };
+  return { gclid, keyword, src, camp, acc };
 }
 
 export function initializeTracking(searchParams?: URLSearchParams): void {
@@ -97,9 +117,25 @@ export function initializeTracking(searchParams?: URLSearchParams): void {
   if (urlParams.keyword) {
     setCookie(KEYWORD_COOKIE, urlParams.keyword);
   }
+  if (urlParams.src) {
+    setCookie(SRC_COOKIE, urlParams.src);
+  }
+  if (urlParams.camp) {
+    setCookie(CAMP_COOKIE, urlParams.camp);
+  }
+  if (urlParams.acc) {
+    setCookie(ACC_COOKIE, urlParams.acc);
+  }
 }
 
-export function applyTrackingToUrl(url: string, gclid: string, keyword: string): string {
+export function applyTrackingToUrl(
+  url: string,
+  gclid: string,
+  keyword: string,
+  src?: string,
+  camp?: string,
+  acc?: string
+): string {
   let result = url;
   
   if (gclid) {
@@ -107,6 +143,23 @@ export function applyTrackingToUrl(url: string, gclid: string, keyword: string):
   }
   if (keyword) {
     result = result.replaceAll('{keyword}', encodeURIComponent(keyword));
+  }
+  // For src/camp/acc: substitute if present, otherwise remove the macro cleanly
+  // so literal {src}, {camp}, {acc} are never sent to Offer18.
+  if (src) {
+    result = result.replaceAll('{src}', encodeURIComponent(src));
+  } else {
+    result = result.replaceAll('{src}', '');
+  }
+  if (camp) {
+    result = result.replaceAll('{camp}', encodeURIComponent(camp));
+  } else {
+    result = result.replaceAll('{camp}', '');
+  }
+  if (acc) {
+    result = result.replaceAll('{acc}', encodeURIComponent(acc));
+  } else {
+    result = result.replaceAll('{acc}', '');
   }
   
   return result;
@@ -116,18 +169,24 @@ export function getTrackedWebsiteUrl(
   affiliateUrl: string | null | undefined,
   websiteUrl: string | null | undefined,
   gclid: string,
-  keyword: string
+  keyword: string,
+  src?: string,
+  camp?: string,
+  acc?: string
 ): string {
   const baseUrl = affiliateUrl || websiteUrl || '#';
-  return applyTrackingToUrl(baseUrl, gclid, keyword);
+  return applyTrackingToUrl(baseUrl, gclid, keyword, src, camp, acc);
 }
 
 export function getTrackedCouponLink(
   couponAffiliateUrl: string | null | undefined,
   websiteUrl: string,
   gclid: string,
-  keyword: string
+  keyword: string,
+  src?: string,
+  camp?: string,
+  acc?: string
 ): string {
   const baseUrl = couponAffiliateUrl || websiteUrl || '#';
-  return applyTrackingToUrl(baseUrl, gclid, keyword);
+  return applyTrackingToUrl(baseUrl, gclid, keyword, src, camp, acc);
 }

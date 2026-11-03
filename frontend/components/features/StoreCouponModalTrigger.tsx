@@ -23,12 +23,15 @@ export function StoreCouponModalTrigger({ coupon, store }: { coupon: Coupon; sto
 
   const handleRedeem = () => {
     // Reuse existing tracked coupon link logic
-    const { gclid, keyword } = getTrackingValues();
+    const { gclid, keyword, src, camp, acc } = getTrackingValues();
     const couponLink = getTrackedCouponLink(
       coupon.affiliate_url,
       store.website_url || '#',
       gclid,
-      keyword
+      keyword,
+      src,
+      camp,
+      acc
     );
     if (couponLink) {
       window.location.href = couponLink;

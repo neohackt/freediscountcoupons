@@ -2,7 +2,7 @@
 
 import { StoreSidebar } from './StoreSidebar';
 import type { Store } from '@/types';
-import { getTrackingValues, initializeTracking } from '@/lib/tracking';
+import { getTrackingValues, initializeTracking, applyTrackingToUrl } from '@/lib/tracking';
 
 interface StoreSidebarUrlTrackerProps {
   store: Store;
@@ -17,12 +17,10 @@ interface StoreSidebarUrlTrackerProps {
 
 export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSidebarUrlTrackerProps) {
   initializeTracking();
-  const { gclid, keyword } = getTrackingValues();
+  const { gclid, keyword, src, camp, acc } = getTrackingValues();
 
   let websiteUrl = store?.affiliate_url || store?.website_url || '#';
-  websiteUrl = websiteUrl
-    .replaceAll('{gclid}', encodeURIComponent(gclid))
-    .replaceAll('{keyword}', encodeURIComponent(keyword));
+  websiteUrl = applyTrackingToUrl(websiteUrl, gclid, keyword, src, camp, acc);
 
   // Project store to minimal serializable object for StoreSidebar
   const sanitizedStore = store

@@ -2,7 +2,7 @@
 
 import { StoreLogoFigure } from './StoreCard';
 import { getStoreLogo } from '@/lib/strapi';
-import { getTrackingValues, initializeTracking } from '@/lib/tracking';
+import { getTrackingValues, initializeTracking, applyTrackingToUrl } from '@/lib/tracking';
 import type { EventStore } from '@/types/event';
 
 interface EventStoreCardProps {
@@ -11,14 +11,12 @@ interface EventStoreCardProps {
 
 export function EventStoreCard({ store }: EventStoreCardProps) {
   initializeTracking();
-  const { gclid, keyword } = getTrackingValues();
+  const { gclid, keyword, src, camp, acc } = getTrackingValues();
 
   const storeLogoUrl = getStoreLogo(store);
 
   let destinationUrl = store?.affiliate_url || store?.website_url || '#';
-  destinationUrl = destinationUrl
-    .replaceAll('{gclid}', encodeURIComponent(gclid))
-    .replaceAll('{keyword}', encodeURIComponent(keyword));
+  destinationUrl = applyTrackingToUrl(destinationUrl, gclid, keyword, src, camp, acc);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-6 text-center transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200">
