@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
-import { getTrackingValues, getTrackedCouponLink, initializeTracking } from '@/lib/tracking';
+import { getTrackingValues, getTrackedCouponLink, initializeTracking, type TrackingValues } from '@/lib/tracking';
 
 const DESCRIPTION_MAX_LENGTH = 140;
 
@@ -19,11 +19,20 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
   const [isCopied, setIsCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const store = coupon.store;
+  // Reactive tracking values — initialized empty for SSR/hydration consistency,
+  // then populated after initializeTracking() runs in useEffect.
+  const [trackingValues, setTrackingValues] = useState<TrackingValues>({
+    gclid: '', keyword: '', src: '', camp: '', acc: '',
+  });
 
-  // Initialize tracking from URL params and get persisted values
-  initializeTracking();
-  const { gclid, keyword, src, camp, acc } = getTrackingValues();
+  useEffect(() => {
+    initializeTracking();
+    setTrackingValues(getTrackingValues());
+  }, []);
+
+  const { gclid, keyword, src, camp, acc } = trackingValues;
+
+  const store = coupon.store;
 
   const couponLink = getTrackedCouponLink(
     coupon.affiliate_url,

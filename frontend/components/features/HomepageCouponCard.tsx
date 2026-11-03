@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn, formatDiscount } from '@/lib/utils';
 import { CouponButton } from './CouponButton';
 import type { Coupon } from '@/types';
 import { getStoreLogo } from '@/lib/strapi';
-import { getTrackedCouponLink, initializeTracking, getTrackingValues } from '@/lib/tracking';
+import { getTrackedCouponLink, initializeTracking, getTrackingValues, type TrackingValues } from '@/lib/tracking';
 
 const DESCRIPTION_MAX_LENGTH = 140;
 
@@ -21,9 +21,17 @@ export function HomepageCouponCard({ coupon }: HomepageCouponCardProps) {
 
   const store = coupon.store;
 
-  // Initialize tracking from URL params and get persisted values
-  initializeTracking();
-  const { gclid, keyword, src, camp, acc } = getTrackingValues();
+  // Reactive tracking values — initialized empty for SSR/hydration consistency
+  const [trackingValues, setTrackingValues] = useState<TrackingValues>({
+    gclid: '', keyword: '', src: '', camp: '', acc: '',
+  });
+
+  useEffect(() => {
+    initializeTracking();
+    setTrackingValues(getTrackingValues());
+  }, []);
+
+  const { gclid, keyword, src, camp, acc } = trackingValues;
 
   const couponLink = getTrackedCouponLink(
     coupon.affiliate_url,

@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { StoreSidebar } from './StoreSidebar';
 import type { Store } from '@/types';
-import { getTrackingValues, initializeTracking, applyTrackingToUrl } from '@/lib/tracking';
+import { getTrackingValues, initializeTracking, applyTrackingToUrl, type TrackingValues } from '@/lib/tracking';
 
 interface StoreSidebarUrlTrackerProps {
   store: Store;
@@ -16,8 +17,17 @@ interface StoreSidebarUrlTrackerProps {
 }
 
 export function StoreSidebarUrlTracker({ store, stats, similarStores }: StoreSidebarUrlTrackerProps) {
-  initializeTracking();
-  const { gclid, keyword, src, camp, acc } = getTrackingValues();
+  // Reactive tracking values — initialized empty for SSR/hydration consistency
+  const [trackingValues, setTrackingValues] = useState<TrackingValues>({
+    gclid: '', keyword: '', src: '', camp: '', acc: '',
+  });
+
+  useEffect(() => {
+    initializeTracking();
+    setTrackingValues(getTrackingValues());
+  }, []);
+
+  const { gclid, keyword, src, camp, acc } = trackingValues;
 
   let websiteUrl = store?.affiliate_url || store?.website_url || '#';
   websiteUrl = applyTrackingToUrl(websiteUrl, gclid, keyword, src, camp, acc);

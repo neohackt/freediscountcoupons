@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { CouponDetailsModal } from './CouponDetailsModal';
-import { getTrackingValues, getTrackedCouponLink, initializeTracking } from '@/lib/tracking';
+import { getTrackingValues, getTrackedCouponLink, initializeTracking, type TrackingValues } from '@/lib/tracking';
 import type { Coupon, Store } from '@/types';
 
 export function StoreCouponModalTrigger({ coupon, store }: { coupon: Coupon; store: Store }) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Initialize tracking client-side
+  // Reactive tracking values — initialized empty for SSR/hydration consistency
+  const [trackingValues, setTrackingValues] = useState<TrackingValues>({
+    gclid: '', keyword: '', src: '', camp: '', acc: '',
+  });
+
+  // Initialize tracking client-side and update reactive state
   useEffect(() => {
     initializeTracking();
+    setTrackingValues(getTrackingValues());
   }, []);
 
   const handleClose = () => {
@@ -22,7 +28,8 @@ export function StoreCouponModalTrigger({ coupon, store }: { coupon: Coupon; sto
   };
 
   const handleRedeem = () => {
-    // Reuse existing tracked coupon link logic
+    // Ensure tracking is initialized and read latest values from cookies
+    initializeTracking();
     const { gclid, keyword, src, camp, acc } = getTrackingValues();
     const couponLink = getTrackedCouponLink(
       coupon.affiliate_url,

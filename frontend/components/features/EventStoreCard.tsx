@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { StoreLogoFigure } from './StoreCard';
 import { getStoreLogo } from '@/lib/strapi';
-import { getTrackingValues, initializeTracking, applyTrackingToUrl } from '@/lib/tracking';
+import { getTrackingValues, initializeTracking, applyTrackingToUrl, type TrackingValues } from '@/lib/tracking';
 import type { EventStore } from '@/types/event';
 
 interface EventStoreCardProps {
@@ -10,8 +11,16 @@ interface EventStoreCardProps {
 }
 
 export function EventStoreCard({ store }: EventStoreCardProps) {
-  initializeTracking();
-  const { gclid, keyword, src, camp, acc } = getTrackingValues();
+  const [trackingValues, setTrackingValues] = useState<TrackingValues>({
+    gclid: '', keyword: '', src: '', camp: '', acc: '',
+  });
+
+  useEffect(() => {
+    initializeTracking();
+    setTrackingValues(getTrackingValues());
+  }, []);
+
+  const { gclid, keyword, src, camp, acc } = trackingValues;
 
   const storeLogoUrl = getStoreLogo(store);
 
