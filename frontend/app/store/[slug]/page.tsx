@@ -211,15 +211,7 @@ function calculateStats(coupons: any[], store?: { currency?: string | null; coun
   return { totalOffers, verifiedCoupons, usedToday, bestDiscount };
 }
 
-function getSteppedLastUpdatedDate(iso: string, now: Date = new Date()): Date {
-  const orig = new Date(iso);
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.floor((startOfDay(now).getTime() - startOfDay(orig).getTime()) / 86400000);
-  const periods = Math.max(0, Math.floor(diffDays / 25));
-  const out = startOfDay(orig);
-  out.setDate(out.getDate() + periods * 25);
-  return out;
-}
+// Removed getSteppedLastUpdatedDate - now using raw last_content_updated_at timestamp directly
 
 function getBestDiscount(coupons: any[], store?: { currency?: string | null; country?: string | null }): string {
   if (coupons.length === 0) return 'N/A';
@@ -664,7 +656,7 @@ export default async function StorePage({
             )}
 
             <div className="mt-8 text-sm text-gray-400">
-              Last updated: {getSteppedLastUpdatedDate(store.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Last updated: {new Date(store.last_content_updated_at || store.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
         </div>

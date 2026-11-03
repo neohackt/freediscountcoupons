@@ -617,6 +617,19 @@ const isProvided = (v: unknown): boolean =>
 export async function deleteExpiredCoupons(strapi: StrapiType): Promise<number> {
   const now = new Date().toISOString();
 
+  // Find affected stores before updating
+  const affectedCoupons = await strapi.db.query('api::coupon.coupon').findMany({
+    where: {
+      $and: [
+        { expires_at: { $notNull: true } },
+        { expires_at: { $lt: now } },
+        { is_expired: false },
+      ],
+    },
+    populate: { store: { fields: ['slug'] } },
+  });
+  const affectedStoreSlugs = [...new Set(affectedCoupons.map((c: any) => c.store?.slug).filter(Boolean))];
+
   const result = await strapi.db.query('api::coupon.coupon').updateMany({
     where: {
       $and: [
@@ -629,6 +642,18 @@ export async function deleteExpiredCoupons(strapi: StrapiType): Promise<number> 
     },
   });
 
+  // Touch affected stores' timestamps (bypasses lifecycle hooks since updateMany doesn't trigger them)
+  for (const storeSlug of affectedStoreSlugs) {
+    try {
+      await strapi.db.query('api::store.store').update({
+        where: { slug: storeSlug },
+        data: { last_content_updated_at: new Date().toISOString() },
+      });
+    } catch (err) {
+      strapi.log?.error(`[deleteExpiredCoupons] Failed to touch store ${storeSlug}: ${err}`);
+    }
+  }
+
   return result.count || 0;
 }
 
@@ -636,6 +661,19 @@ export async function cleanupOldExpiredCoupons(strapi: StrapiType, daysOld: numb
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysOld);
   const cutoff = cutoffDate.toISOString();
+
+  // Find affected stores before deleting
+  const affectedCoupons = await strapi.db.query('api::coupon.coupon').findMany({
+    where: {
+      $and: [
+        { is_expired: true },
+        { expires_at: { $notNull: true } },
+        { expires_at: { $lt: cutoff } },
+      ],
+    },
+    populate: { store: { fields: ['slug'] } },
+  });
+  const affectedStoreSlugs = [...new Set(affectedCoupons.map((c: any) => c.store?.slug).filter(Boolean))];
 
   const result = await strapi.db.query('api::coupon.coupon').deleteMany({
     where: {
@@ -646,6 +684,18 @@ export async function cleanupOldExpiredCoupons(strapi: StrapiType, daysOld: numb
       ],
     },
   });
+
+  // Touch affected stores' timestamps (bypasses lifecycle hooks since deleteMany doesn't trigger them)
+  for (const storeSlug of affectedStoreSlugs) {
+    try {
+      await strapi.db.query('api::store.store').update({
+        where: { slug: storeSlug },
+        data: { last_content_updated_at: new Date().toISOString() },
+      });
+    } catch (err) {
+      strapi.log?.error(`[cleanupOldExpiredCoupons] Failed to touch store ${storeSlug}: ${err}`);
+    }
+  }
 
   return result.count || 0;
 }

@@ -102,6 +102,10 @@
     },
     "aliases": {
       "type": "json"
+    },
+    "last_content_updated_at": {
+      "type": "datetime",
+      "description": "Auto-managed: latest meaningful content change on this store page (store content + coupons). Best-effort initial value from updatedAt."
     }
   }
 }
