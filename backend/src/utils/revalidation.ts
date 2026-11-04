@@ -3,7 +3,7 @@ import type { Core } from '@strapi/strapi';
 const REVALIDATE_URL = process.env.REVALIDATE_URL || 'http://localhost:3000/api/revalidate';
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET || 'your-secret-key';
 
-export type ContentType = 'store' | 'coupon' | 'category' | 'blog' | 'blogCategory' | 'author' | 'event' | 'homepage' | 'sitemap';
+export type ContentType = 'store' | 'coupon' | 'category' | 'blog' | 'blogCategory' | 'author' | 'event' | 'homepage' | 'sitemap' | 'storeRedirect';
 
 interface RouteRule {
   paths: string[];
@@ -46,6 +46,10 @@ const ROUTE_RULES: Record<ContentType, (identifiers: Record<string, string>) => 
   sitemap: () => ({
     paths: [`/sitemap.xml`],
     tags: ['sitemap'],
+  }),
+  storeRedirect: () => ({
+    paths: [],
+    tags: ['store-redirects'],
   }),
 };
 

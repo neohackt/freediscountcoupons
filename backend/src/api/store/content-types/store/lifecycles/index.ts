@@ -78,6 +78,27 @@ export default {
 
   async afterCreate(event: any) {
     const slug = event.params.data?.slug;
+    const status = event.params.data?.status || event.result?.status;
+
+    // If store is created as published, deactivate any existing redirect
+    if (slug && status === 'published') {
+      try {
+        const existingRedirect = await strapi.db.query('api::store-redirect.store-redirect').findOne({
+          where: { source_slug: slug },
+        });
+        if (existingRedirect?.is_active) {
+          await strapi.db.query('api::store-redirect.store-redirect').update({
+            where: { id: existingRedirect.id },
+            data: { is_active: false },
+          });
+          strapi.log?.info(`[Store Lifecycle] Deactivated redirect for published store (created as published): ${slug}`);
+          revalidationService.addRoutes('storeRedirect', [{}]);
+        }
+      } catch (err) {
+        strapi.log?.error(`[Store Lifecycle] Failed to deactivate redirect for ${slug}: ${err}`);
+      }
+    }
+
     if (slug) {
       revalidationService.addRoutes('store', [{ slug }]);
       revalidationService.addRoutes('homepage', [{}]);
@@ -112,13 +133,54 @@ export default {
     await revalidationService.flush();
   },
 
-  async afterDelete(event: any) {
-    const slug = event.result?.slug || event.params.where?.slug;
-    if (slug) {
-      revalidationService.addRoutes('store', [{ slug }]);
+  async beforeDelete(event: any) {
+    const where = event.params.where || {};
+    try {
+      const existing = await strapi.db.query('api::store.store').findOne({ where });
+      if (existing?.slug) {
+        event.state = event.state || {};
+        event.state.deletedSlug = existing.slug;
+      }
+    } catch (err) {
+      strapi.log?.error(`[Store Lifecycle] beforeDelete error: ${err}`);
+    }
+  },
+
+  async beforeDeleteMany(event: any) {
+    const where = event.params.where || {};
+    try {
+      const stores = await strapi.db.query('api::store.store').findMany({ where });
+      const slugs = stores.map((s: any) => s.slug).filter(Boolean);
+      event.state = event.state || {};
+      event.state.deletedSlugs = slugs;
+    } catch (err) {
+      strapi.log?.error(`[Store Lifecycle] beforeDeleteMany error: ${err}`);
+    }
+  },
+
+  async afterDeleteMany(event: any) {
+    // Revalidation only — redirect creation is handled by Document Service middleware
+    const slugs = event.state?.deletedSlugs || [];
+    if (slugs.length > 0) {
       revalidationService.addRoutes('homepage', [{}]);
       revalidationService.addRoutes('sitemap', [{}]);
       await revalidationService.flush();
     }
   },
+
+  async afterDelete(event: any) {
+    const slug = event.state?.deletedSlug || event.result?.slug || event.params.where?.slug;
+    if (!slug) {
+      strapi.log?.warn(`[Store Lifecycle] afterDelete: could not capture slug. event.state=${JSON.stringify(event.state)}, event.result=${JSON.stringify(event.result)}, event.params.where=${JSON.stringify(event.params.where)}`);
+      return;
+    }
+
+    // Revalidation only — redirect creation is handled by Document Service middleware
+    revalidationService.addRoutes('store', [{ slug }]);
+    revalidationService.addRoutes('storeRedirect', [{}]);
+    revalidationService.addRoutes('homepage', [{}]);
+    revalidationService.addRoutes('sitemap', [{}]);
+    await revalidationService.flush();
+  },
+
 };

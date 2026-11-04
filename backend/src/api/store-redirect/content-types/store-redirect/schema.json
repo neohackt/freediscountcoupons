@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "store_redirects",
+  "info": {
+    "singularName": "store-redirect",
+    "pluralName": "store-redirects",
+    "displayName": "Store Redirect",
+    "description": "Permanent redirects for deleted store URLs"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "source_slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "destination_path": {
+      "type": "string",
+      "required": true,
+      "default": "/"
+    },
+    "status_code": {
+      "type": "integer",
+      "required": true,
+      "default": 301,
+      "min": 300,
+      "max": 399
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "is_pending": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if redirect creation is pending retry after a failure. Set to false after successful activation."
+    },
+    "source_document_id": {
+      "type": "string",
+      "description": "The Strapi documentId of the deleted Store. Used to verify the Store is actually deleted before activating the redirect."
+    }
+  }
+}
