@@ -31,10 +31,13 @@ export async function POST(request: NextRequest) {
     const revalidated: string[] = [];
     const failed: { path: string; error: string }[] = [];
 
-    // Revalidate paths
+    // Revalidate paths. Dynamic route patterns (paths containing '[') MUST use
+    // the 'page' type per Next.js 16 revalidatePath semantics; 'layout' is kept
+    // for concrete paths to also purge nested layouts beneath them.
     for (const path of uniquePaths) {
       try {
-        revalidatePath(path, 'layout');
+        const isPattern = path.includes('[');
+        revalidatePath(path, isPattern ? 'page' : 'layout');
         revalidated.push(path);
       } catch (error) {
         failed.push({ path, error: error instanceof Error ? error.message : 'Unknown error' });

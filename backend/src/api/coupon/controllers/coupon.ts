@@ -114,13 +114,11 @@ export function withGlobalFilter(baseWhere: any): any {
   };
 }
 
-function buildSort(sort: any): any {
-  if (!sort || typeof sort !== 'object') return { createdAt: 'desc' };
-  const result: any = {};
-  for (const [key, value] of Object.entries(sort)) {
-    result[key] = value;
-  }
-  return result;
+function buildSort(_sort: any): any {
+  // Public coupon endpoints always sort newest-first. Custom sort query
+  // parameters are intentionally ignored so callers cannot override the
+  // newest-first ordering requirement (createdAt DESC, id DESC).
+  return [{ createdAt: 'desc' }, { id: 'desc' }];
 }
 
 /**
@@ -223,7 +221,7 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
         publishedAt: { $notNull: true },
       },
       populate: ['store', 'store.logo', 'categories'],
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       limit: 20,
     });
 
@@ -242,7 +240,7 @@ export default factories.createCoreController('api::coupon.coupon', ({ strapi })
         publishedAt: { $notNull: true },
       },
       populate: ['store', 'store.logo', 'categories'],
-      orderBy: [{ times_used: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ times_used: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
       limit: 24,
     });
 

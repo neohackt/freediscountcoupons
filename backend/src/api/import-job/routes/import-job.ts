@@ -10,15 +10,6 @@ export default {
       },
     },
     {
-      method: 'POST',
-      path: '/import/link-coupons',
-      handler: 'import-job.linkCouponsToStores',
-      config: {
-        auth: false,
-        policies: ['global::require-import-token'],
-      },
-    },
-    {
       method: 'GET',
       path: '/import/jobs',
       handler: 'import-job.getJobs',

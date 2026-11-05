@@ -35,9 +35,14 @@ export default ({ strapi }) => ({
       }),
       strapi.db.query('api::coupon.coupon').findMany({
         where: {
-          $or: [
-            { title: { $containsi: q } },
-            { description: { $containsi: q } },
+          $and: [
+            { publishedAt: { $notNull: true } },
+            {
+              $or: [
+                { title: { $containsi: q } },
+                { description: { $containsi: q } },
+              ],
+            },
           ],
         },
         populate: ['store', 'store.logo', 'categories'],
@@ -141,17 +146,25 @@ export default ({ strapi }) => ({
       }),
       strapi.db.query('api::category.category').findMany({
         where: {
-          name: { $containsi: q },
+          $and: [
+            { name: { $containsi: q } },
+            { publishedAt: { $notNull: true } },
+          ],
         },
         limit: 2,
       }),
       strapi.db.query('api::coupon.coupon').findMany({
         where: {
-          $or: [
-            { title: { $containsi: q } },
-            { store: { name: { $containsi: q } } },
+          $and: [
+            { publishedAt: { $notNull: true } },
+            { is_expired: false },
+            {
+              $or: [
+                { title: { $containsi: q } },
+                { store: { name: { $containsi: q } } },
+              ],
+            },
           ],
-          is_expired: false,
         },
         populate: ['store', 'store.logo'],
         limit: 4,

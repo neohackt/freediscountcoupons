@@ -195,39 +195,6 @@ export default factories.createCoreController('api::import-job.import-job', ({ s
     });
   },
 
-  async linkCouponsToStores(ctx) {
-    const stores = await strapi.db.query('api::store.store').findMany({});
-    const storeMap = new Map(stores.map((s: { id: number; slug: string }) => [s.slug, s.id]));
-    console.log('Store map:', Object.fromEntries(storeMap));
-
-    const coupons = await strapi.db.query('api::coupon.coupon').findMany({});
-    const jobs = await strapi.db.query('api::import-job.import-job').findMany({
-      where: { type: 'coupons' },
-    });
-    const couponJob = jobs.find((j: { data: unknown[] }) => j.data?.length > 0);
-    const couponDataMap = new Map(
-      (couponJob?.data || []).map((d: { code: string; store_slug: string }) => [d.code, d.store_slug as string])
-    );
-    console.log('Found coupon data entries:', couponJob?.data?.length || 0);
-
-    let linked = 0;
-    for (const coupon of coupons) {
-      const couponCode = coupon.code as string;
-      const storeSlug = couponDataMap.get(couponCode);
-      if (storeSlug) {
-        const storeId = storeMap.get(storeSlug as string);
-        if (storeId) {
-          await strapi.db.query('api::coupon.coupon').update({
-            where: { id: coupon.id },
-            data: { store: storeId },
-          });
-          linked++;
-        }
-      }
-    }
-
-    return this.transformResponse({ linked });
-  },
 }));
 
 function getFormatFromFilename(filename: string): ImportFormat {

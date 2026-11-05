@@ -82,7 +82,14 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
   async find(ctx) {
     const entities = await strapi.db.query('api::store.store').findMany({
       where: { publishedAt: { $notNull: true } },
-      populate: ['logo', 'categories', 'coupons'],
+      populate: {
+        logo: true,
+        categories: true,
+        coupons: {
+          where: { publishedAt: { $notNull: true } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        },
+      },
       orderBy: { is_popular: 'desc' },
     });
 
@@ -98,7 +105,14 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
     const { id } = ctx.params;
     const entity = await strapi.db.query('api::store.store').findOne({
       where: { id: id as string, publishedAt: { $notNull: true } },
-      populate: ['logo', 'categories', 'coupons'],
+      populate: {
+        logo: true,
+        categories: true,
+        coupons: {
+          where: { publishedAt: { $notNull: true } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        },
+      },
     });
 
     if (!entity) {
@@ -186,7 +200,14 @@ export default factories.createCoreController('api::store.store', ({ strapi }) =
 
     let entity = await strapi.db.query('api::store.store').findOne({
       where: { slug, publishedAt: { $notNull: true } },
-      populate: ['logo', 'categories', 'coupons'],
+      populate: {
+        logo: true,
+        categories: true,
+        coupons: {
+          where: { publishedAt: { $notNull: true } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        },
+      },
     });
 
     if (!entity) {
