@@ -48,7 +48,7 @@ export function PaidTrafficRedirect({ destination, storePath, storeName }: PaidT
 
   return (
     <>
-      <meta name="referrer" content="no-referrer-when-downgrade" />
+      <meta name="referrer" content="origin" />
       <div className="min-h-[50vh] flex items-center justify-center px-4 py-16">
         <div className="text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -59,8 +59,8 @@ export function PaidTrafficRedirect({ destination, storePath, storeName }: PaidT
           </p>
           <a
             href={destination}
-            rel="noreferrer noopener"
-            referrerPolicy="no-referrer"
+            rel="noopener"
+            referrerPolicy="origin"
             className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Continue to {storeName}

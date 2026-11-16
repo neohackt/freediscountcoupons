@@ -38,7 +38,7 @@ export function EventStoreCard({ store }: EventStoreCardProps) {
       <a
         href={destinationUrl}
         target="_blank"
-        rel="noopener noreferrer nofollow"
+        rel="noopener nofollow"
         className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg text-center transition-colors"
       >
         Go to Store

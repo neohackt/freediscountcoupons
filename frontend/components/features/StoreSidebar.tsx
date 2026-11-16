@@ -58,7 +58,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
           <Link
             href={websiteUrl}
             target="_blank"
-            rel="noopener noreferrer nofollow"
+            rel="noopener nofollow"
             className="block"
           >
             <div className="w-full bg-gray-50 rounded-lg hidden lg:flex items-center justify-center p-4 mb-4">
@@ -77,7 +77,7 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
           <a
             href={websiteUrl}
             target="_blank"
-            rel="noopener noreferrer nofollow"
+            rel="noopener nofollow"
             className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg text-center mb-4 transition-colors"
           >
             Shop Now at {store?.name}
