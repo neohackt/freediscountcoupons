@@ -142,6 +142,9 @@ export async function Footer() {
           <p className="text-gray-400 text-sm font-bold mb-2">
             Affiliate Disclosure: This website may earn commissions from qualifying purchases through affiliate links, at no extra cost to you.
           </p>
+          <p className="text-gray-400 text-sm mb-2">
+            All third-party brand names, logos, trademarks, and product names featured on FreeDiscountCoupons are the property of their respective owners. Their appearance on this website does not imply any affiliation with, sponsorship by, or endorsement of FreeDiscountCoupons by these brands. We are an independent platform that helps users discover coupons, promo codes, and offers from various brands.
+          </p>
           <p className="text-gray-400 text-sm">
             &copy; {new Date().getFullYear()} {BRAND_CONFIG.name}. All rights reserved. | Designed & Developed by Whiz Adsbay LLP
           </p>
