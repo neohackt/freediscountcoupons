@@ -12,9 +12,10 @@ interface HolyCouponCardProps {
   coupon: Coupon;
   variant?: 'default' | 'highlight';
   isExpired?: boolean;
+  isHighestDiscount?: boolean;
 }
 
-export function HolyCouponCard({ coupon, variant = 'default', isExpired = false }: HolyCouponCardProps) {
+export function HolyCouponCard({ coupon, variant = 'default', isExpired = false, isHighestDiscount = false }: HolyCouponCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -49,7 +50,7 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
   const couponId = coupon.documentId || String(coupon.id);
 
   const discountText = formatDiscount(coupon, coupon.store);
-  const badgeType = getBadgeType(coupon);
+  const badgeType = getBadgeType(coupon, isHighestDiscount);
   const timeAgo = getTimeAgo(coupon.createdAt);
 
   const copyToClipboard = async (text: string) => {
@@ -217,8 +218,9 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
   );
 }
 
-function getBadgeType(coupon: Coupon): string {
-  if (coupon.is_featured) return 'highest';
+function getBadgeType(coupon: Coupon, isHighestDiscount: boolean): string {
+  if (coupon.verified) return 'none';
+  if (isHighestDiscount) return 'highest';
   return 'default';
 }
 

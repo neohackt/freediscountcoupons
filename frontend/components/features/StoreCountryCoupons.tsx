@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HolyCouponCard } from './HolyCouponCard';
 import { STRAPI_URL } from '@/lib/strapi';
 import type { Coupon } from '@/types';
+import { computeHighestDiscountIds } from '@/lib/coupon-badge';
 
 export interface CountryMarket {
   code: string;
@@ -317,6 +318,7 @@ export function StoreCountryCoupons({
   const verified = source.filter((c: Coupon) => !c.is_expired && c.verified);
   const regular = source.filter((c: Coupon) => !c.is_expired && !c.verified);
   const expired = source.filter((c: Coupon) => c.is_expired);
+  const regularHighestIds = computeHighestDiscountIds(regular);
   const selectedMarket = markets.find((m) => m.code === selected);
   const isGlobal = selected === 'GLOBAL';
   const allEmpty = verified.length === 0 && regular.length === 0 && expired.length === 0;
@@ -433,7 +435,7 @@ export function StoreCountryCoupons({
 
           <div className="space-y-4">
             {regular.map((coupon) => (
-              <HolyCouponCard key={coupon.id} coupon={coupon as Coupon} />
+              <HolyCouponCard key={coupon.id} coupon={coupon as Coupon} isHighestDiscount={regularHighestIds.has(String(coupon.id))} />
             ))}
           </div>
         </section>

@@ -26,6 +26,7 @@ import {
   type PaidTrafficConfig,
 } from '@/lib/paid-traffic';
 import { formatCurrency, resolveCouponCurrency } from '@/lib/formatters/currency';
+import { computeHighestDiscountIds } from '@/lib/coupon-badge';
 import type { Store, StoreFaq, StoreFaqJsonLd } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -329,6 +330,7 @@ export default async function StorePage({
   const expiredCoupons = allCoupons.filter((c: any) => c.is_expired);
   const verifiedCoupons = activeCoupons.filter((c: any) => c.verified);
   const regularCoupons = activeCoupons.filter((c: any) => !c.verified);
+  const regularHighestIds = computeHighestDiscountIds(regularCoupons);
   const stats = calculateStats(activeCoupons, store);
   const faqs = normalizeFaqs(store.faqs);
   const logoUrl = getStoreLogo(store);
@@ -574,6 +576,7 @@ export default async function StorePage({
                     <HolyCouponCard
                       key={coupon.id}
                       coupon={coupon}
+                      isHighestDiscount={regularHighestIds.has(String(coupon.id))}
                     />
                   ))}
                 </div>
