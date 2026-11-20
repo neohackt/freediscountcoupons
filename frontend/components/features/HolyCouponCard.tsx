@@ -96,11 +96,6 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
                       Highest Discount
                     </span>
                   )}
-                  {badgeType === 'likely' && (
-                    <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-600 mb-1">
-                      Likely to work
-                    </span>
-                  )}
                   {badgeType === 'default' && (
                     <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 mb-1">
                       Active
@@ -129,11 +124,6 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
                     Highest Discount
                   </span>
                 )}
-{badgeType === 'likely' && (
-              <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-600 mb-2 -mt-1 sm:mt-0">
-                Likely to work
-              </span>
-            )}
                 {badgeType === 'default' && (
                   <span className="inline-block px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 mb-2">
                     Active
@@ -228,9 +218,7 @@ export function HolyCouponCard({ coupon, variant = 'default', isExpired = false 
 }
 
 function getBadgeType(coupon: Coupon): string {
-  if (coupon.verified) return 'likely';
   if (coupon.is_featured) return 'highest';
-  if (coupon.success_rate && coupon.success_rate > 70) return 'likely';
   return 'default';
 }
 
