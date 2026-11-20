@@ -3,12 +3,11 @@ import { cn } from '@/lib/utils';
 interface BrandStatsProps {
   totalOffers: number;
   verifiedCoupons: number;
-  usedToday: number;
   bestDiscount: string;
   className?: string;
 }
 
-export function BrandStats({ totalOffers, verifiedCoupons, usedToday, bestDiscount, className }: BrandStatsProps) {
+export function BrandStats({ totalOffers, verifiedCoupons, bestDiscount, className }: BrandStatsProps) {
   const stats = [
     {
       label: 'Total Offers',
@@ -19,11 +18,6 @@ export function BrandStats({ totalOffers, verifiedCoupons, usedToday, bestDiscou
       label: 'Verified Coupons',
       value: verifiedCoupons,
       icon: 'check',
-    },
-    {
-      label: 'Used Today',
-      value: usedToday,
-      icon: 'eye',
     },
     {
       label: 'Best Discount',
@@ -66,13 +60,6 @@ function getIcon(type: string) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       );
-    case 'eye':
-      return (
-        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-        </svg>
-      );
     case 'tag':
       return (
         <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,8 +77,6 @@ function getIconBg(type: string) {
       return 'bg-blue-100';
     case 'check':
       return 'bg-green-100';
-    case 'eye':
-      return 'bg-purple-100';
     case 'tag':
       return 'bg-orange-100';
     default:

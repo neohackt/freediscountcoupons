@@ -10,7 +10,6 @@ interface StoreSidebarUrlTrackerProps {
   stats: {
     totalOffers: number;
     verifiedCoupons: number;
-    usedToday: number;
     bestDiscount: string;
   };
   similarStores?: Store[];

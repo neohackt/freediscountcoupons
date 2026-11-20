@@ -29,7 +29,6 @@ interface StoreSidebarProps {
   stats: {
     totalOffers: number;
     verifiedCoupons: number;
-    usedToday: number;
     bestDiscount: string;
   };
   similarStores?: { id: number | string; slug: string; name: string }[];
@@ -98,7 +97,6 @@ export function StoreSidebar({ store, stats, similarStores = [], websiteUrl }: S
       <BrandStats
         totalOffers={stats.totalOffers}
         verifiedCoupons={stats.verifiedCoupons}
-        usedToday={stats.usedToday}
         bestDiscount={stats.bestDiscount}
         className="hidden lg:block"
       />

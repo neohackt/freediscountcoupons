@@ -206,10 +206,9 @@ async function resolvePaidTraffic(
 function calculateStats(coupons: any[], store?: { currency?: string | null; country?: string | null }) {
   const totalOffers = coupons.length;
   const verifiedCoupons = coupons.filter(c => c.verified).length;
-  const usedToday = coupons.reduce((sum, c) => sum + (c.times_used || 0), 0);
   const bestDiscount = getBestDiscount(coupons, store);
-  
-  return { totalOffers, verifiedCoupons, usedToday, bestDiscount };
+
+  return { totalOffers, verifiedCoupons, bestDiscount };
 }
 
 // Removed getSteppedLastUpdatedDate - now using raw last_content_updated_at timestamp directly
@@ -614,7 +613,6 @@ export default async function StorePage({
             <BrandStats
               totalOffers={stats.totalOffers}
               verifiedCoupons={stats.verifiedCoupons}
-              usedToday={stats.usedToday}
               bestDiscount={stats.bestDiscount}
               className="block lg:hidden"
             />
